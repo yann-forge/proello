@@ -9,6 +9,9 @@ export const MAX_WORDS = 4;
 
 const B = '(?<![\\p{L}\'’])';
 const E = '(?![\\p{L}])';
+// « pour + verbe » annonce le but (« pour remplir le frigo ») : pas besoin dans le titre.
+// Sensible à la casse : un prénom (« pour Olivier ») ou un article (« pour le client ») ne coupe pas.
+const PURPOSE = new RegExp(`\\s*${B}pour (?=\\p{Ll}\\p{L}*(?:er|ir|re|oir)${E})`, 'u');
 const CLAUSE = new RegExp(
   `\\s*(?:[,:(]|${B}(?:parce que|parce qu['’]|car|pour que|pour qu['’]|afin de|afin d['’]|afin que|vu que|puisque|sinon|histoire de|comme ça|qui|où|lorsque|lorsqu['’]|quand|si jamais|sachant que|étant donné que)${E})`,
   'iu'
@@ -55,8 +58,8 @@ export function summarize(text) {
   if (words(s).length <= MAX_WORDS) return cap(s);
 
   // 1. couper à la première explication
-  const m = s.match(CLAUSE);
-  if (m && m.index > 0) {
+  const m = [s.match(CLAUSE), s.match(PURPOSE)].filter((x) => x && x.index > 0).sort((a, b) => a.index - b.index)[0];
+  if (m) {
     const head = s.slice(0, m.index).trim();
     if (words(head).length >= 2) s = head;
   }

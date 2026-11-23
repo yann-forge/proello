@@ -42,10 +42,14 @@ const LEADING_FILLERS = new RegExp(
       'alors', 'bon', 'donc', 'ok', 'okay', 'euh', 'et', 'aussi', 'ah', 'oui',
       'il (?:faut|faudrait)(?: absolument| vraiment| aussi)?(?: que (?:je |j[\'’]))?',
       'je (?:dois|devrais|voudrais|veux)(?: absolument| vraiment| aussi)?',
+      // formules d'intention : « besoin de », « il me faut », « il va falloir »…
+      "(?:j['’]ai |on a |nous avons |il y a )?(?:vraiment |absolument )?besoin (?:de|d['’])",
+      'il (?:me|nous) faut', 'il va (?:me |nous )?falloir', 'je vais devoir', 'on va devoir',
+      "j['’]ai prévu (?:de|d['’])", 'je compte', 'on compte', "il est temps (?:de|d['’])",
       "j['’](?:aimerais|ai à|aurais à)",
       'on (?:doit|devrait)',
       'penser à', 'pense à',
-      "ne pas oublier (?:de |d['’])", "n['’]oublie pas (?:de |d['’])", "rappelle[- ]moi (?:de |d['’])",
+      "ne pas oublier (?:de|d['’])", "n['’]oublie pas (?:de|d['’])", "rappelle[- ]moi (?:de|d['’])",
       'tâche\\s*:?',
     ].join('|') +
     ")(?:(?<=['’])|(?![\\p{L}]))\\s*",

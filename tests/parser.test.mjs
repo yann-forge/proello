@@ -97,3 +97,19 @@ test('enchaînements : « dans un second temps », « par la suite », « une fo
     'Appeler le notaire', 'Envoyer le compromis', 'Prévenir la banque', 'Réserver le déménageur', 'Trier les cartons',
   ]);
 });
+
+test('formules d’intention retirées et but (« pour + verbe ») hors du titre', () => {
+  const [a] = p('besoin de faire les courses pour remplir le frigo avant jeudi');
+  assert.deepEqual([a.title, a.start, a.end], ['Faire les courses', '2026-11-23', '2026-11-26']);
+  assert.match(a.notes, /pour remplir le frigo/);
+  assert.deepEqual(
+    p(
+      "j'ai besoin d'appeler le garage puis il me faut un nouveau chargeur puis il va falloir ranger la cave " +
+        "puis j'ai prévu de repeindre le portail puis il est temps de trier les papiers"
+    ).map((t) => t.title),
+    ['Appeler le garage', 'Un nouveau chargeur', 'Ranger la cave', 'Repeindre le portail', 'Trier les papiers']
+  );
+  // « pour » suivi d'un nom, d'un article ou d'un prénom : pas un but, on ne coupe pas
+  assert.deepEqual(p('acheter un cadeau pour Olivier et un pour Marie').map((t) => t.title), ['Acheter cadeau Olivier Marie']);
+  assert.deepEqual(p('préparer la présentation pour le client Dupont').map((t) => t.title), ['Préparer présentation client Dupont']);
+});
