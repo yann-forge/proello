@@ -1,0 +1,181 @@
+// Vue 2 : planning façon Gantt. Les barres se déplacent / s'étirent au doigt ou à la souris.
+
+import { quadrantOf, sortTasks } from '../tasks.js';
+import { todayISO, addDays, diffDays, fromISO, fmtShort } from '../dates.js';
+import { esc, lsGet, lsSet } from '../util.js';
+
+const SPANS = [
+  { days: 7, label: 'Semaine', step: 7 },
+  { days: 14, label: '2 semaines', step: 7 },
+  { days: 31, label: 'Mois', step: 28 },
+];
+const WD = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+const fmtMonth = new Intl.DateTimeFormat('fr-FR', { month: 'short' });
+const state = { start: null, span: lsGet('proello.gantt.span', 14) };
+
+export function renderGantt(root, tasks, ctx) {
+  const today = todayISO();
+  if (!state.start) state.start = addDays(today, -1);
+  const span = state.span;
+  const spanDef = SPANS.find((s) => s.days === span) || SPANS[1];
+  const last = addDays(state.start, span - 1);
+  const nameW = window.innerWidth < 600 ? 116 : 200;
+  const avail = Math.max(0, root.clientWidth - nameW - 2);
+  const dayW = Math.max(span > 14 ? 30 : 40, Math.floor(avail / span));
+  const prevScroll = root.querySelector('.gantt')?.scrollLeft;
+
+  const scheduled = tasks
+    .filter((t) => t.start)
+    .sort((a, b) => Number(a.done) - Number(b.done) || (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
+  const unscheduled = sortTasks(tasks.filter((t) => !t.start && !t.done));
+  const days = Array.from({ length: span }, (_, i) => addDays(state.start, i));
+
+  const head = days
+    .map((d, i) => {
+      const dt = fromISO(d);
+      const wd = dt.getDay();
+      const month = i === 0 || dt.getDate() === 1 ? `<em>${fmtMonth.format(dt)}</em>` : '';
+      return `<div class="g-day ${wd === 0 || wd === 6 ? 'we' : ''} ${d === today ? 'today' : ''}">${month}<span>${WD[wd]}</span><b>${dt.getDate()}</b></div>`;
+    })
+    .join('');
+
+  const grid = days
+    .map((d) => {
+      const wd = fromISO(d).getDay();
+      return `<div class="${wd === 0 || wd === 6 ? 'we' : ''} ${d === today ? 'today' : ''}"></div>`;
+    })
+    .join('');
+
+  const rows = scheduled
+    .map((t) => {
+      const s = diffDays(state.start, t.start);
+      const e = diffDays(state.start, t.end);
+      const visible = e >= 0 && s <= span - 1;
+      const q = quadrantOf(t);
+      const bar = visible
+        ? `<div class="g-bar q-${q} ${t.done ? 'is-done' : ''} ${s < 0 ? 'clip-l' : ''} ${e > span - 1 ? 'clip-r' : ''} ${
+            (Math.min(e, span - 1) - Math.max(s, 0) + 1) * dayW < 110 ? (Math.min(e, span - 1) > span - 4 ? 'narrow left' : 'narrow') : ''
+          }"
+              style="${place(s, e, span, dayW)}" title="${esc(t.title)}">
+             <i class="g-handle l"></i><span>${esc(t.title)}</span><i class="g-handle r"></i>
+           </div>`
+        : `<span class="g-out ${e < 0 ? 'left' : 'right'}">${e < 0 ? '‹ ' + fmtShort(t.end) : fmtShort(t.start) + ' ›'}</span>`;
+      return `<div class="g-row" data-id="${t.id}">
+        <button class="g-name q-${q} ${t.done ? 'is-done' : ''}" data-edit="${t.id}">${esc(t.title)}</button>
+        <div class="g-track">${bar}</div>
+      </div>`;
+    })
+    .join('');
+
+  const rangeLabel = `${fmtShort(state.start)} – ${fmtShort(last)}`;
+  const todayIdx = diffDays(state.start, today);
+
+  root.innerHTML = `
+    <div class="gantt-toolbar">
+      <div class="seg">${SPANS.map((s) => `<button data-span="${s.days}" class="${s.days === span ? 'on' : ''}">${s.label}</button>`).join('')}</div>
+      <div class="g-nav">
+        <button class="icon-btn" data-nav="prev" aria-label="Période précédente">‹</button>
+        <button class="btn ghost small" data-nav="today">Aujourd'hui</button>
+        <button class="icon-btn" data-nav="next" aria-label="Période suivante">›</button>
+      </div>
+      <span class="range-label">${rangeLabel}</span>
+    </div>
+    <div class="gantt" style="--name-w:${nameW}px;--day-w:${dayW}px;--days:${span}">
+      <div class="g-inner">
+        <div class="g-head"><div class="g-corner">Tâches</div><div class="g-days">${head}</div></div>
+        <div class="g-body">
+          <div class="g-grid">${grid}</div>
+          ${todayIdx >= 0 && todayIdx < span ? `<div class="g-now" style="left:calc(var(--name-w) + ${todayIdx + 0.5} * var(--day-w))"></div>` : ''}
+          ${rows || `<p class="g-empty">Aucune tâche planifiée. Donne une date à une tâche (ou dis « demain », « vendredi »… en la dictant).</p>`}
+        </div>
+      </div>
+    </div>
+    ${
+      unscheduled.length
+        ? `<section class="unscheduled">
+            <h3>Non planifiées <small>${unscheduled.length}</small></h3>
+            <ul>${unscheduled
+              .map(
+                (t) => `<li class="q-${quadrantOf(t)}">
+                  <button class="u-title" data-edit="${t.id}">${esc(t.title)}</button>
+                  <button class="btn ghost small" data-plan="${t.id}">+ Aujourd'hui</button>
+                </li>`
+              )
+              .join('')}</ul>
+          </section>`
+        : ''
+    }
+  `;
+
+  if (prevScroll != null) root.querySelector('.gantt').scrollLeft = prevScroll;
+
+  root.onclick = (e) => {
+    const spanBtn = e.target.closest('[data-span]');
+    if (spanBtn) {
+      state.span = Number(spanBtn.dataset.span);
+      lsSet('proello.gantt.span', state.span);
+      return ctx.rerender();
+    }
+    const nav = e.target.closest('[data-nav]');
+    if (nav) {
+      const n = nav.dataset.nav;
+      state.start = n === 'today' ? addDays(todayISO(), -1) : addDays(state.start, (n === 'next' ? 1 : -1) * spanDef.step);
+      return ctx.rerender();
+    }
+    const edit = e.target.closest('[data-edit]');
+    if (edit) return ctx.openEditor(edit.dataset.edit);
+    const plan = e.target.closest('[data-plan]');
+    if (plan) ctx.update(plan.dataset.plan, { start: todayISO(), end: todayISO() });
+  };
+
+  root.onpointerdown = (ev) => {
+    const bar = ev.target.closest('.g-bar');
+    if (!bar || ev.button > 0) return;
+    ev.preventDefault();
+    const id = bar.closest('.g-row').dataset.id;
+    const t = tasks.find((x) => x.id === id);
+    const mode = ev.target.closest('.g-handle.l') ? 'start' : ev.target.closest('.g-handle.r') ? 'end' : 'move';
+    const s0 = diffDays(state.start, t.start);
+    const e0 = diffDays(state.start, t.end);
+    const x0 = ev.clientX;
+    let moved = false;
+    let s = s0;
+    let en = e0;
+    bar.setPointerCapture(ev.pointerId);
+
+    const onMove = (e) => {
+      const dx = e.clientX - x0;
+      if (Math.abs(dx) > 5) moved = true;
+      if (!moved) return;
+      const delta = Math.round(dx / dayW);
+      s = s0;
+      en = e0;
+      if (mode === 'move') {
+        s += delta;
+        en += delta;
+      } else if (mode === 'start') s = Math.min(s0 + delta, e0);
+      else en = Math.max(e0 + delta, s0);
+      bar.style.cssText = place(s, en, span, dayW);
+      bar.classList.add('dragging');
+    };
+    const finish = (e) => {
+      bar.removeEventListener('pointermove', onMove);
+      bar.removeEventListener('pointerup', finish);
+      bar.removeEventListener('pointercancel', finish);
+      if (e.type === 'pointercancel') return ctx.rerender();
+      if (!moved) return ctx.openEditor(id);
+      if (s === s0 && en === e0) return ctx.rerender();
+      ctx.update(id, { start: addDays(state.start, s), end: addDays(state.start, en) });
+    };
+    bar.addEventListener('pointermove', onMove);
+    bar.addEventListener('pointerup', finish);
+    bar.addEventListener('pointercancel', finish);
+  };
+}
+
+function place(s, e, span, dayW) {
+  const a = Math.max(s, 0);
+  const b = Math.min(e, span - 1);
+  const width = Math.max(b - a + 1, 1) * dayW - 6;
+  return `left:${a * dayW + 3}px;width:${width}px`;
+}

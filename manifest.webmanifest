@@ -1,0 +1,20 @@
+{
+  "name": "Proello — tâches & priorités",
+  "short_name": "Proello",
+  "description": "Dicte tes tâches, Proello les trie par urgence et importance : liste, planning et matrice d'Eisenhower.",
+  "lang": "fr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FFFBF1",
+  "theme_color": "#FFF8E6",
+  "categories": ["productivity"],
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
