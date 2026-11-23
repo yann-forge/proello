@@ -33,6 +33,6 @@
       }
     ],
     "comment": "Cette tâche à été déduite d'un texte regroupant plusieurs tâches. Celle-ci était adossé au texte d'une autre tâche qui a été énuméré dans la même dictée : 50 mails dans l'objectif de trouver des mécènes pour les activités de l'association tout le monde sans trois. Étant donné que le bilan rapport est celui de l'envoi de mail pour le mécénat le thème mécénat doit rester pour les deux tâches pour bien les identifier dans le titre. Il serait bon également de créer un bouton dans chaque tâche qui permet d'afficher le texte initial dictée dans son ensemble. Et quand on clique sur ce bouton en plus du texte initial voir en combien de tâches il a été séparé pour avoir un historique traçable",
-    "pending": "Le rapport ne contient que la phrase de la tâche (créée avant la 0.4.0) : la date du 4 décembre et le thème « mécénat » viennent d'autres phrases de la dictée. En attente de la dictée complète."
+    "pending": "Le rapport ne contient que la phrase de la tâche (créée avant la 0.4.0), pas la dictée complète. Cas reconstitué et couvert dans tests/themes.test.mjs."
   }
 ]

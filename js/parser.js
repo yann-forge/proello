@@ -7,6 +7,7 @@
 
 import { summarize } from './summarize.js';
 import { extractWhen } from './when.js';
+import { applyThemes } from './themes.js';
 
 const LETTER = "\\p{L}'’";
 const word = (body, flags = 'giu') => new RegExp(`(?<![${LETTER}])(?:${body})(?![\\p{L}])`, flags);
@@ -187,6 +188,8 @@ export function parseDictation(input, now = new Date()) {
     }
     tasks.push(r);
   }
+
+  applyThemes(tasks); // thème commun (« mécénat ») entre tâches d'une même dictée
 
   return tasks.map((t) => ({
     title: t.title,

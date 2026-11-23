@@ -18,6 +18,7 @@ L'utilisateur écrit en français : répondre en français, et garder l'interfac
 - `js/parser.js` : découpe une dictée en tâches, urgent / important, rattache les phrases de précision, reprises de dictée.
 - `js/when.js` : dates, périodes (« entre A et B », « du A au B »), échéances (« pour vendredi »), durées.
 - `js/summarize.js` : titre court (4 mots maximum).
+- `js/themes.js` : thème commun entre tâches d'une même dictée (lexique de thèmes + tâches de suivi « bilan », « rapport »…).
 - `js/report.js` : formulaire « Signaler une erreur » → fiche GitHub pré-remplie dans le dépôt privé.
 - `tests/` : `parser.test.mjs`, `periods.test.mjs`, et `reports.test.mjs` (alimenté par `tests/reports.json`).
 
