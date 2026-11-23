@@ -1,10 +1,12 @@
 // Transforme une dictée (ou un texte tapé) en une liste de tâches.
 // - découpe sur « puis », « ensuite », « et aussi », « tâche suivante », la ponctuation…
 // - repère « urgent » / « important » (et leurs négations)
-// - repère les dates : aujourd'hui, demain, lundi, dans 3 jours, le 12 décembre, pour vendredi…
+// - repère les dates et périodes (voir when.js) : demain, jeudi 26 novembre, entre lundi et mercredi…
+// - rattache à la tâche précédente les phrases qui ne font que la préciser (« À faire avant vendredi. »)
+// - supprime les reprises de dictée (« envoyer le… envoyer le dossier »)
 
-import { toISO } from './dates.js';
 import { summarize } from './summarize.js';
+import { extractWhen } from './when.js';
 
 const LETTER = "\\p{L}'’";
 const word = (body, flags = 'giu') => new RegExp(`(?<![${LETTER}])(?:${body})(?![\\p{L}])`, flags);
@@ -28,101 +30,6 @@ const IMPORTANT = word(
   "(?:c['’]est )?(?:très |super |vraiment |assez )?(?:importante?s?|prioritaires?|en priorité|essentielle?s?|cruciale?s?|primordiale?s?|capitale?s?)"
 );
 
-const WEEKDAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
-const MONTHS = {
-  janvier: 0, février: 1, fevrier: 1, mars: 2, avril: 3, mai: 4, juin: 5, juillet: 6,
-  août: 7, aout: 7, septembre: 8, octobre: 9, novembre: 10, décembre: 11, decembre: 11,
-};
-const NUMBERS = {
-  un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8, neuf: 9,
-  dix: 10, onze: 11, douze: 12, quinze: 15, vingt: 20, quelques: 3,
-};
-const NUM = `\\d{1,3}|${Object.keys(NUMBERS).join('|')}`;
-const MONTH = Object.keys(MONTHS).join('|');
-
-// mots qui transforment la date en échéance (début = aujourd'hui, fin = date)
-const DEADLINE = new Set(['pour', 'avant', "d'ici", 'd’ici', 'au plus tard', "jusqu'à", 'jusqu’à', "jusqu'au", 'jusqu’au', 'à rendre']);
-const PREFIX = "(?:(pour|avant|d['’]ici|au plus tard|jusqu['’]à|jusqu['’]au|à rendre|dès|à partir d['’]|à partir de|à partir du)\\s+)?(?:(?:le|la|ce|cette|du|au)\\s+)?";
-
-const day0 = (now) => new Date(now.getFullYear(), now.getMonth(), now.getDate());
-const plus = (now, n) => {
-  const d = day0(now);
-  d.setDate(d.getDate() + n);
-  return d;
-};
-const nextWeekday = (now, target, allowToday = false) => {
-  const delta = (target - now.getDay() + 7) % 7;
-  return plus(now, delta === 0 && !allowToday ? 7 : delta);
-};
-const toNumber = (s) => (/^\d+$/.test(s) ? Number(s) : NUMBERS[s.toLowerCase()] ?? 1);
-
-// Règles de dates, testées dans l'ordre. `m[k]` = groupes de la règle (le groupe 1 est le préfixe).
-const DATE_RULES = [
-  { re: 'surlendemain', fn: (m, now) => plus(now, 2) },
-  { re: "aujourd['’]hui|ce soir|ce matin|cet après-midi|cette après-midi|tout à l['’]heure", fn: (m, now) => plus(now, 0) },
-  { re: 'demain(?: matin| soir| midi| après-midi)?', fn: (m, now) => plus(now, 1) },
-  { re: 'week-end|weekend|week end', fn: (m, now) => nextWeekday(now, 6, true) },
-  { re: '(?:en )?fin de (?:la )?semaine', fn: (m, now) => nextWeekday(now, 5, true) },
-  {
-    re: 'semaine prochaine',
-    fn: (m, now) => nextWeekday(now, 1),
-  },
-  {
-    re: 'mois prochain',
-    fn: (m, now) => new Date(now.getFullYear(), now.getMonth() + 1, 1),
-  },
-  {
-    re: `(${WEEKDAYS.join('|')})(?: prochain| qui vient)?(?: matin| soir| midi| après-midi)?`,
-    fn: (m, now) => nextWeekday(now, WEEKDAYS.indexOf(m[2].toLowerCase())),
-  },
-  {
-    re: `dans (${NUM}) (jours?|semaines?|mois)`,
-    fn: (m, now) => {
-      const n = toNumber(m[2]);
-      const unit = m[3].toLowerCase();
-      if (unit.startsWith('mois')) return new Date(now.getFullYear(), now.getMonth() + n, now.getDate());
-      return plus(now, unit.startsWith('semaine') ? n * 7 : n);
-    },
-  },
-  {
-    re: `le (\\d{1,2}|1er|premier)(?:\\s+(${MONTH}))?(?:\\s+(\\d{4}))?`,
-    fn: (m, now) => {
-      const d = /^\d+$/.test(m[2]) ? Number(m[2]) : 1;
-      if (d < 1 || d > 31) return null;
-      const today = day0(now);
-      if (m[3]) {
-        const month = MONTHS[m[3].toLowerCase()];
-        let date = new Date(m[4] ? Number(m[4]) : now.getFullYear(), month, d);
-        if (!m[4] && date < today) date = new Date(now.getFullYear() + 1, month, d);
-        return date;
-      }
-      let date = new Date(now.getFullYear(), now.getMonth(), d);
-      if (date < today) date = new Date(now.getFullYear(), now.getMonth() + 1, d);
-      return date;
-    },
-  },
-].map((r) => ({ ...r, regex: word(PREFIX + r.re, 'iu') }));
-
-function extractDate(text, now) {
-  for (const rule of DATE_RULES) {
-    // le préfixe « le » est intégré à la dernière règle : on le retire du préfixe générique
-    const m = text.match(rule.regex);
-    if (!m) continue;
-    const date = rule.fn(m, now);
-    if (!date) continue;
-    const iso = toISO(date);
-    const prefix = (m[1] || '').toLowerCase();
-    const isDeadline = DEADLINE.has(prefix);
-    const todayIso = toISO(now);
-    return {
-      text: text.slice(0, m.index) + ' ' + text.slice(m.index + m[0].length),
-      start: isDeadline && iso > todayIso ? todayIso : iso,
-      end: iso,
-    };
-  }
-  return { text, start: null, end: null };
-}
-
 const LEADING_FILLERS = new RegExp(
   '^(?:' +
     [
@@ -138,7 +45,12 @@ const LEADING_FILLERS = new RegExp(
     ")(?:(?<=['’])|(?![\\p{L}]))\\s*",
   'iu'
 );
-const TRAILING_FILLERS = /(?:[\s,]+(?:et|c['’]est|ce|qui est|très|vraiment|aussi|le|la|les|pour|avant))+$/iu;
+const TRAILING_FILLERS =
+  /(?:[\s,]+(?:et|c['’]est|ce|qui est|très|vraiment|aussi|le|la|les|pour|avant|entre|de|du|au|à|max|maximum|prévue?s?|(?:à|a) (?:faire|réaliser|rendre|terminer|finir|traiter|boucler|livrer)))+$/iu;
+
+// Une phrase qui ne contient que des précisions (« À faire entre jeudi et vendredi », « C'est urgent »)
+const ATTRIBUTE_ONLY =
+  /^(?:(?:à|a)\s+(?:faire|réaliser|rendre|terminer|finir|traiter|boucler|livrer)|il faut le faire|(?:le|la) faire|faire ça|ça|ce sera|c['’]est|prévue?s?|délai|échéance|deadline|et|pour|de|du|au|le|la|les|entre|à|max|maximum|[\s,.;:!?\-–])*$/iu;
 
 // « il faut que je… » / « faut que j'… » : le verbe qui suit est conjugué, on le remet à l'infinitif
 const QUE_JE = /^(?:(?:alors|bon|donc|euh|et|oui)\s+)*(?:il )?(?:faut|faudrait)(?: absolument| vraiment| aussi| vite)? que (?:je |j['’])\s*(\p{L}+)/iu;
@@ -183,7 +95,36 @@ function clean(s) {
   return s ? s[0].toLocaleUpperCase('fr-FR') + s.slice(1) : '';
 }
 
+/* ---------- reprises de dictée ---------- */
+
+// Mot « comparable » : minuscules, sans accents, lettres doublées simplifiées (Guzzo ≈ guzo)
+const fold = (w) =>
+  w
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]/g, '')
+    .replace(/(.)\1+/g, '$1');
+
+/**
+ * Quand on se reprend en dictant (« envoyer exemplaire guzo de Xavier à envoyer exemplaire Guzzo de Xavier à Aurélie »),
+ * les 3 premiers mots reviennent plus loin : on garde seulement la dernière version.
+ */
+export function dropRestart(text) {
+  const words = text.trim().split(/\s+/);
+  if (words.length < 6) return text.trim();
+  const key = words.slice(0, 3).map(fold);
+  if (key.some((k) => !k)) return text.trim();
+  for (let k = words.length - 3; k >= 2; k--) {
+    if (key.every((w, i) => fold(words[k + i]) === w)) return words.slice(k).join(' ');
+  }
+  return text.trim();
+}
+
+/* ---------- une phrase → une tâche (ou des précisions) ---------- */
+
 function parseFragment(raw, now) {
+  raw = dropRestart(raw);
   let text = ` ${raw} `;
   let urgent = false;
   let important = false;
@@ -193,13 +134,26 @@ function parseFragment(raw, now) {
   text = text.replace(URGENT, () => ((urgent = true), ' '));
   text = text.replace(IMPORTANT, () => ((important = true), ' '));
 
-  const date = extractDate(text, now);
-  const full = clean(date.text);
-  if (!/\p{L}{2,}/u.test(full)) return null;
-  const title = summarize(full);
-  // Le texte dicté complet devient le détail, seulement si le titre a perdu de l'information
-  const notes = title === full ? '' : dictated(raw);
-  return { title, notes, urgent, important, start: date.start, end: date.end };
+  const when = extractWhen(text, now);
+  const full = clean(when.text);
+  const base = { raw, urgent, important, start: when.start, end: when.end };
+
+  if (!/\p{L}{2,}/u.test(full) || ATTRIBUTE_ONLY.test(full)) {
+    // pas d'action : seulement des précisions à rattacher à une tâche voisine
+    return urgent || important || when.start ? { ...base, attributeOnly: true } : null;
+  }
+  return { ...base, full, title: summarize(full) };
+}
+
+function mergeInto(task, extra) {
+  task.urgent ||= extra.urgent;
+  task.important ||= extra.important;
+  if (extra.start && !task.start) {
+    task.start = extra.start;
+    task.end = extra.end;
+  }
+  task.raw = `${task.raw}. ${extra.raw}`;
+  task.merged = true;
 }
 
 function dictated(raw) {
@@ -212,12 +166,35 @@ export function parseDictation(input, now = new Date()) {
   if (!input || !input.trim()) return [];
   const text = input
     .replace(/après[-\s]demain/giu, 'surlendemain') // évite de couper sur « après »
-    .replace(/[.;!?\n]+/g, ' | ')
+    .replace(/[;!?\n]+|\.(?!\d)|(?<!\d)\./g, ' | ') // un point coupe, sauf dans une date « 26.11 »
     .replace(SEPARATORS, ' | ');
-  return text
-    .split('|')
-    .map((frag) => frag.trim())
-    .filter(Boolean)
-    .map((frag) => parseFragment(frag, now))
-    .filter(Boolean);
+
+  const tasks = [];
+  let pending = null; // précisions dites avant la première tâche
+  for (const frag of text.split('|').map((f) => f.trim()).filter(Boolean)) {
+    const r = parseFragment(frag, now);
+    if (!r) continue;
+    if (r.attributeOnly) {
+      const prev = tasks[tasks.length - 1];
+      if (prev) mergeInto(prev, r);
+      else if (pending) mergeInto(pending, r);
+      else pending = r;
+      continue;
+    }
+    if (pending) {
+      mergeInto(r, pending);
+      pending = null;
+    }
+    tasks.push(r);
+  }
+
+  return tasks.map((t) => ({
+    title: t.title,
+    // le texte dicté devient le détail dès que le titre a perdu de l'information
+    notes: t.title !== t.full || t.merged ? dictated(t.raw) : '',
+    urgent: t.urgent,
+    important: t.important,
+    start: t.start,
+    end: t.end,
+  }));
 }

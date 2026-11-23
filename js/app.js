@@ -11,7 +11,7 @@ import { renderList } from './views/list.js';
 import { renderGantt } from './views/gantt.js';
 import { renderMatrix } from './views/matrix.js';
 
-export const VERSION = '0.2.1';
+export const VERSION = '0.3.0';
 
 const VIEWS = { list: renderList, gantt: renderGantt, matrix: renderMatrix };
 let current = VIEWS[lsGet('proello.view', 'list')] ? lsGet('proello.view', 'list') : 'list';
