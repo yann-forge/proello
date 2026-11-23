@@ -122,6 +122,13 @@
           <label class="field"><span>Échéance</span><input type="date" name="end" /></label>
         </div>
         <label class="field"><span>Détail</span><textarea name="notes" rows="4" placeholder="Ce que tu as dicté, des liens, des personnes…"></textarea></label>
+        <details id="editorSource" class="source-box" hidden>
+          <summary>🎙 Dictée d'origine <small id="editorSourceCount"></small></summary>
+          <p id="editorSourceMeta" class="muted small"></p>
+          <blockquote id="editorSourceText"></blockquote>
+          <p class="muted small">Tâches créées à partir de cette dictée :</p>
+          <ol id="editorSiblings" class="siblings"></ol>
+        </details>
         <label class="check-row"><input type="checkbox" name="done" /> Terminée</label>
         <button type="button" id="editorReport" class="link muted-link">⚑ Signaler une erreur de compréhension</button>
         <footer>

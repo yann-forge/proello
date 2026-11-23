@@ -16,7 +16,8 @@ const fold = (s) =>
     .trim();
 
 for (const c of cases) {
-  test(`rapport #${c.issue} : ${c.input.slice(0, 60)}`, () => {
+  // « pending » : rapport incomplet ou en attente d'une réponse de l'utilisateur (le test est affiché mais pas exécuté)
+  test(`rapport #${c.issue} : ${c.input.slice(0, 60)}`, { skip: c.pending || false }, () => {
     const got = parseDictation(c.input, new Date(c.now));
     const expected = c.expected.filter((t) => t.title);
     const show = (list) => list.map((t) => `${t.title} [${t.start}→${t.end}${t.urgent ? ' U' : ''}${t.important ? ' I' : ''}]`);

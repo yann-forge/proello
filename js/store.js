@@ -39,6 +39,7 @@ function make(input) {
     notes: input.notes || '',
     source: input.source || '', // texte dicté ou tapé d'origine
     dictatedAt: input.dictatedAt || null, // moment de la dictée (les dates relatives en dépendent)
+    dictationId: input.dictationId || null, // tâches issues de la même dictée
     createdAt: Date.now(),
   });
 }

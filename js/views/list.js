@@ -15,7 +15,7 @@ export function dateChip(t) {
 
 /** Petit symbole indiquant qu'un détail (texte dicté, notes) est disponible en ouvrant la tâche. */
 export const detailMark = (t) =>
-  t.notes && t.notes.trim()
+  (t.notes && t.notes.trim()) || (t.source && t.source.trim().toLowerCase() !== t.title.trim().toLowerCase())
     ? `<span class="detail-mark" title="Détail disponible" aria-label="Détail disponible"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9" /></svg></span>`
     : '';
 

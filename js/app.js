@@ -7,7 +7,7 @@ import { startDictation, voiceSupported, VOICE_ERRORS } from './voice.js';
 import { QUADS, quadrantOf } from './tasks.js';
 import { relLabel, todayISO, toLocalStamp } from './dates.js';
 import { openReport, initReport } from './report.js';
-import { $, esc, lsGet, lsSet } from './util.js';
+import { $, esc, lsGet, lsSet, uid } from './util.js';
 import { renderList } from './views/list.js';
 import { renderGantt } from './views/gantt.js';
 import { renderMatrix } from './views/matrix.js';
@@ -99,8 +99,45 @@ let baseText = ''; // texte déjà validé à l'étape « corriger », complét�
 
 /** Garde le texte d'origine et la date de la dictée sur chaque tâche (utile pour signaler une erreur). */
 function withSource(items, source, at) {
-  return items.map((t) => ({ ...t, source: source.trim(), dictatedAt: toLocalStamp(at) }));
+  const dictationId = uid(); // relie entre elles les tâches issues de la même dictée
+  return items.map((t) => ({ ...t, source: source.trim(), dictatedAt: toLocalStamp(at), dictationId }));
 }
+
+/** Les tâches issues de la même dictée que `t` (elle comprise). */
+function siblingsOf(t) {
+  if (!t.source) return [t];
+  return store
+    .all()
+    .filter((x) => (t.dictationId ? x.dictationId === t.dictationId : x.source === t.source && x.dictatedAt === t.dictatedAt))
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+const fmtStamp = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+
+function renderSource(t) {
+  const box = $('#editorSource');
+  box.hidden = !t.source;
+  if (!t.source) return;
+  box.open = false;
+  const sibs = siblingsOf(t);
+  $('#editorSourceCount').textContent = sibs.length > 1 ? `· ${sibs.length} tâches` : '· 1 tâche';
+  $('#editorSourceMeta').textContent = t.dictatedAt ? `Dictée le ${fmtStamp.format(new Date(t.dictatedAt))}` : '';
+  $('#editorSourceText').textContent = t.source;
+  $('#editorSiblings').innerHTML = sibs
+    .map(
+      (s, i) => `<li><button type="button" data-sibling="${s.id}" class="${s.id === t.id ? 'current' : ''} q-${quadrantOf(s)}" ${s.id === t.id ? 'aria-current="true"' : ''}>
+        <span>${i + 1}</span>${esc(s.title)}${s.done ? ' <small>(terminée)</small>' : ''}</button></li>`
+    )
+    .join('');
+}
+
+$('#editorSiblings').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-sibling]');
+  if (!b || b.dataset.sibling === editingId) return;
+  $('#editor').returnValue = '';
+  $('#editor').close();
+  openEditor(b.dataset.sibling);
+});
 
 $('#micBtn').addEventListener('click', () => {
   if (!voiceSupported) {
@@ -302,6 +339,7 @@ function openEditor(id) {
   form.notes.value = t.notes || '';
   form.done.checked = t.done;
   updateQuadHint();
+  renderSource(t);
   const dlg = $('#editor');
   dlg.returnValue = '';
   dlg.showModal();

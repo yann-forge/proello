@@ -344,6 +344,18 @@ body.recording .fab { visibility: hidden; }
 .muted-link:hover { color: var(--orange-ink); }
 #editorReport { margin-top: 10px; font-size: 0.88rem; }
 
+.source-box { margin-top: 14px; padding: 10px 14px; border-radius: 14px; background: var(--yellow-soft); }
+.source-box summary { cursor: pointer; font-weight: 800; color: var(--yellow-ink); }
+.source-box summary small { font-weight: 700; opacity: 0.8; }
+.source-box blockquote { margin: 6px 0 10px; padding: 10px 12px; border-left: 3px solid var(--yellow-strong); border-radius: 8px; background: var(--surface); font-size: 0.92rem; line-height: 1.45; white-space: pre-wrap; }
+.source-box p { margin: 6px 0 4px; }
+.siblings { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.siblings button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 7px 10px; border-radius: 10px; background: var(--surface); text-align: left; font-weight: 700; font-size: 0.88rem; }
+.siblings button span { display: grid; place-items: center; min-width: 22px; height: 22px; border-radius: 99px; background: var(--q); color: var(--q-ink); font-size: 0.75rem; }
+.siblings button.current { outline: 2px solid var(--q-strong); cursor: default; }
+.siblings button:not(.current):hover { background: var(--q-soft); }
+.siblings small { color: var(--muted); font-weight: 600; }
+
 .report-understood { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .report-understood li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 9px 12px; border-radius: 12px; background: var(--sand-soft); font-size: 0.9rem; }
 .report-understood li span { color: var(--muted); font-size: 0.82rem; }

@@ -14,7 +14,20 @@ const CLAUSE = new RegExp(
   'iu'
 );
 
-const ELISION = /^(?:l|d|j|qu|m|t|s|n|c)['’](?=\p{L})/iu;
+const PARTICIPLES =
+  'faite?s?|réalisée?s?|effectuée?s?|envoyée?s?|préparée?s?|rédigée?s?|terminée?s?|finie?s?|organisée?s?|transmise?s?|remise?s?|établie?s?|présentée?s?|validée?s?|signée?s?|planifiée?s?|traitée?s?|lancée?s?';
+const PASSIVE = new RegExp(
+  `${B}(?:devra|devront|doit|doivent|devrait|devraient|va|vont|sera|seront|est|sont)(?:\\s+(?:être|bien|absolument|vraiment|aussi|vite))*\\s+(?:${PARTICIPLES})${E}`,
+  'giu'
+);
+const fold = (w) =>
+  w
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+
+const ELISION =/^(?:l|d|j|qu|m|t|s|n|c)['’](?=\p{L})/iu;
 const EMPTY = new Set(
   (
     'le la les un une des mon ma mes ton ta tes son sa ses notre nos votre vos leur leurs ce cet cette ces ' +
@@ -49,10 +62,22 @@ export function summarize(text) {
   }
   if (words(s).length <= MAX_WORDS) return cap(s);
 
-  // 2. enlever les mots vides
+  // 1 bis. retirer les tournures au passif, qui n'apportent rien au titre (« devra être fait », « doit être envoyé »)
+  s = s.replace(PASSIVE, ' ').replace(/\s+/g, ' ').trim();
+  if (words(s).length <= MAX_WORDS) return cap(trimTail(words(s)).join(' '));
+
+  // 2. enlever les mots vides, et les mots de la même famille déjà présents (« rapport » … « rapporter »)
+  const stems = new Set();
   let list = words(s)
     .map((w) => w.replace(ELISION, ''))
-    .filter((w) => w && !EMPTY.has(lc(w)));
+    .filter((w) => w && !EMPTY.has(lc(w)))
+    .filter((w) => {
+      const stem = fold(w).slice(0, 6);
+      if (stem.length < 6) return true;
+      if (stems.has(stem)) return false;
+      stems.add(stem);
+      return true;
+    });
   if (list.length <= MAX_WORDS) return cap(list.join(' '));
 
   // 3. couper avant une préposition, si on garde au moins 3 mots (« Envoyer devis à Marc »)

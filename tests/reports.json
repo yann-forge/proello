@@ -3,10 +3,36 @@
     "issue": 0,
     "now": "2026-11-23T10:00",
     "input": "Envoyer exemplaire guzo de Xavier à envoyer exemplaire Guzzo de Xavier à Aurélie. À faire  entre le jeudi 26 novembre et le vendredi 27 novembre.",
-    "problems": ["dates", "decoupage"],
+    "problems": [
+      "dates",
+      "decoupage"
+    ],
     "expected": [
-      { "title": "Envoyer exemplaire Guzzo", "start": "2026-11-26", "end": "2026-11-27", "urgent": false, "important": false }
+      {
+        "title": "Envoyer exemplaire Guzzo",
+        "start": "2026-11-26",
+        "end": "2026-11-27",
+        "urgent": false,
+        "important": false
+      }
     ],
     "comment": "Premier retour, reçu dans la conversation avant le bouton de rapport."
+  },
+  {
+    "issue": 2,
+    "now": "2026-11-23T17:47",
+    "input": "Un bilan et rapport devra être fait et rapporter aux membres de l'association",
+    "problems": [],
+    "expected": [
+      {
+        "title": "Bilan rapport Mécénat",
+        "start": "2026-12-04",
+        "end": "2026-12-04",
+        "urgent": false,
+        "important": false
+      }
+    ],
+    "comment": "Cette tâche à été déduite d'un texte regroupant plusieurs tâches. Celle-ci était adossé au texte d'une autre tâche qui a été énuméré dans la même dictée : 50 mails dans l'objectif de trouver des mécènes pour les activités de l'association tout le monde sans trois. Étant donné que le bilan rapport est celui de l'envoi de mail pour le mécénat le thème mécénat doit rester pour les deux tâches pour bien les identifier dans le titre. Il serait bon également de créer un bouton dans chaque tâche qui permet d'afficher le texte initial dictée dans son ensemble. Et quand on clique sur ce bouton en plus du texte initial voir en combien de tâches il a été séparé pour avoir un historique traçable",
+    "pending": "Le rapport ne contient que la phrase de la tâche (créée avant la 0.4.0) : la date du 4 décembre et le thème « mécénat » viennent d'autres phrases de la dictée. En attente de la dictée complète."
   }
 ]

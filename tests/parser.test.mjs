@@ -62,6 +62,9 @@ test('résume en 4 mots maximum et garde le texte dicté en détail', () => {
     ['préparer la présentation pour le client Dupont avec les chiffres du trimestre', 'Préparer présentation client Dupont'],
     ['faire un point avec toute mon équipe sur les objectifs commerciaux', 'Faire point avec équipe'],
     ['nettoyer entièrement la voiture familiale avant le départ en vacances', 'Nettoyer entièrement voiture familiale'],
+    // rapport #2 : tournure au passif et mots de la même famille
+    ["Un bilan et rapport devra être fait et rapporter aux membres de l'association", 'Bilan et rapport'],
+    ['La facture du traiteur doit être envoyée à la comptable avant la fin du mois', 'Facture du traiteur'],
   ];
   for (const [said, title] of cases) {
     const [t] = p(said);
