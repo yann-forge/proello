@@ -76,7 +76,7 @@ export function renderList(root, tasks, ctx) {
             <p class="muted">Appuie sur le micro et dicte tes tâches, en les séparant par « puis » ou « ensuite ».</p>
           </div>`
     }
-    ${state.filter !== 'todo' && doneCount ? `<button class="link center" data-act="clear-done">Effacer les tâches terminées</button>` : ''}
+    ${state.filter !== 'todo' && doneCount ? `<button class="link center" data-act="clear-done">Mettre les tâches terminées à la corbeille</button>` : ''}
   `;
 
   root.onclick = (e) => {

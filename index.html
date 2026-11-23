@@ -151,7 +151,8 @@
           <button type="button" id="profileBtn" class="menu-item">👤 Profil et catégories <small id="profileLabel" class="muted"></small></button>
           <button type="button" id="exportBtn" class="menu-item">⬆︎ Exporter une sauvegarde (JSON)</button>
           <label class="menu-item">⬇︎ Importer une sauvegarde<input type="file" id="importInput" accept="application/json,.json" hidden /></label>
-          <button type="button" id="clearDoneBtn" class="menu-item">✓ Effacer les tâches terminées</button>
+          <button type="button" id="trashBtn" class="menu-item">🗑 Corbeille <small id="trashCount" class="muted"></small></button>
+          <button type="button" id="clearDoneBtn" class="menu-item">✓ Mettre les tâches terminées à la corbeille</button>
           <button type="button" id="shortenBtn" class="menu-item">✂︎ Raccourcir les titres trop longs</button>
           <button type="button" id="menuReport" class="menu-item">⚑ Signaler une erreur</button>
         </div>
@@ -196,6 +197,22 @@
         <footer>
           <button type="button" id="reportCopy" class="btn ghost">Copier</button>
           <button value="send" class="btn primary">Envoyer sur GitHub</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <!-- Corbeille -->
+    <dialog id="trash" class="sheet">
+      <form method="dialog">
+        <header>
+          <h2>Corbeille</h2>
+          <button value="close" class="icon-btn" aria-label="Fermer">✕</button>
+        </header>
+        <p class="muted small">Les tâches supprimées restent ici 30 jours, puis elles sont effacées pour de bon.</p>
+        <ul id="trashList" class="trash-list"></ul>
+        <footer>
+          <button type="button" id="trashEmpty" class="btn danger small">Vider la corbeille</button>
+          <button value="close" class="btn primary">Fermer</button>
         </footer>
       </form>
     </dialog>

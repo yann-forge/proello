@@ -563,3 +563,14 @@ body.welcoming .fab { display: none; }
   .profile-card { padding: 12px; }
   .welcome-card h1 { font-size: 1.4rem; }
 }
+
+/* ---------- Corbeille ---------- */
+
+.trash-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; max-height: 55vh; overflow-y: auto; }
+.trash-list li { display: flex; align-items: center; gap: 8px; padding: 10px 10px 10px 14px; border-radius: 14px; background: var(--surface-2); }
+.trash-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.trash-info b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trash-info small { color: var(--muted); font-size: 0.78rem; }
+.trash-purge { width: auto; min-width: 36px; padding: 0 8px; font-size: 0.85rem; color: var(--muted); }
+.trash-purge.confirm, #trashEmpty.confirm { background: var(--danger); color: #fff; }
+.trash-none { padding: 16px; text-align: center; background: none !important; }

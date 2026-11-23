@@ -1,6 +1,6 @@
 // Point d'entrée : navigation entre les vues, dictée, dialogues, installation PWA.
 
-import { store } from './store.js';
+import { store, TRASH_DAYS } from './store.js';
 import { parseDictation } from './parser.js';
 import { summarize, MAX_WORDS } from './summarize.js';
 import { startDictation, voiceSupported, VOICE_ERRORS } from './voice.js';
@@ -383,7 +383,7 @@ $('#menuReport').addEventListener('click', () => {
 $('#editorDelete').addEventListener('click', () => {
   const removed = store.remove(editingId);
   $('#editor').close();
-  if (removed) toast('Tâche supprimée', { label: 'Annuler', run: () => store.restore(removed) });
+  if (removed) toast('Tâche mise à la corbeille', { label: 'Annuler', run: () => store.untrash(removed.id) });
 });
 
 /* ---------- Menu ---------- */
@@ -396,10 +396,85 @@ $('#profileBtn').addEventListener('click', () => {
 $('#versionLabel').textContent = `Version ${VERSION}.`;
 
 function clearDone() {
-  const before = store.all();
-  const n = store.clearDone();
-  if (n) toast(n > 1 ? `${n} tâches terminées effacées` : '1 tâche terminée effacée', { label: 'Annuler', run: () => store.replaceAll(before) });
+  const ids = store.clearDone();
+  const n = ids.length;
+  if (n) toast(n > 1 ? `${n} tâches terminées mises à la corbeille` : '1 tâche terminée mise à la corbeille', { label: 'Annuler', run: () => store.untrash(ids) });
 }
+
+/* ---------- Corbeille ---------- */
+
+const fmtDeleted = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+function renderTrash() {
+  const items = store.trash();
+  $('#trashCount').textContent = items.length ? `(${items.length})` : '';
+  $('#trashEmpty').disabled = !items.length;
+  $('#trashList').innerHTML = items.length
+    ? items
+        .map((t) => {
+          const left = Math.max(1, TRASH_DAYS - Math.floor((Date.now() - t.deletedAt) / 86400000));
+          return `<li data-id="${t.id}">
+            <div class="trash-info">
+              <b>${esc(t.title)}</b>
+              <small>Supprimée le ${fmtDeleted.format(new Date(t.deletedAt))} · effacée dans ${left} jour${left > 1 ? 's' : ''}</small>
+            </div>
+            <button type="button" class="btn ghost small" data-act="restore">Restaurer</button>
+            <button type="button" class="icon-btn trash-purge" data-act="purge" aria-label="Supprimer définitivement">✕</button>
+          </li>`;
+        })
+        .join('')
+    : '<li class="trash-none muted">La corbeille est vide.</li>';
+}
+
+$('#trashBtn').addEventListener('click', () => {
+  $('#menu').close();
+  renderTrash();
+  $('#trash').showModal();
+});
+
+$('#trashList').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const id = btn.closest('[data-id]').dataset.id;
+  if (btn.dataset.act === 'restore') {
+    store.untrash(id);
+    toast('Tâche restaurée');
+  }
+  if (btn.dataset.act === 'purge') {
+    // deux appuis : le premier demande confirmation
+    if (!btn.classList.contains('confirm')) {
+      btn.classList.add('confirm');
+      btn.textContent = 'Effacer ?';
+      setTimeout(() => btn.isConnected && (btn.classList.remove('confirm'), (btn.textContent = '✕')), 3000);
+      return;
+    }
+    store.purge(id);
+  }
+  renderTrash();
+});
+
+$('#trashEmpty').addEventListener('click', (e) => {
+  const btn = e.currentTarget;
+  if (!btn.classList.contains('confirm')) {
+    btn.classList.add('confirm');
+    btn.textContent = 'Confirmer : tout effacer définitivement';
+    setTimeout(() => (btn.classList.remove('confirm'), (btn.textContent = 'Vider la corbeille')), 4000);
+    return;
+  }
+  store.purge();
+  btn.classList.remove('confirm');
+  btn.textContent = 'Vider la corbeille';
+  renderTrash();
+  toast('Corbeille vidée');
+});
+
+store.subscribe(() => $('#trash').open && renderTrash());
+const refreshTrashCount = () => {
+  const n = store.trash().length;
+  $('#trashCount').textContent = n ? `(${n})` : '';
+};
+store.subscribe(refreshTrashCount);
+refreshTrashCount();
 
 $('#clearDoneBtn').addEventListener('click', () => {
   $('#menu').close();
