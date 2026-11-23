@@ -1,11 +1,11 @@
-// Résume une phrase de tâche en un titre court (5 mots maximum), sans IA, directement sur l'appareil.
+// Résume une phrase de tâche en un titre court (4 mots maximum), sans IA, directement sur l'appareil.
 // Étapes, de la plus douce à la plus forte (on s'arrête dès que le titre est assez court) :
 //   1. couper à la première explication (« parce que », « pour que », « qui », virgule…)
 //   2. enlever les mots vides (articles, possessifs, pronoms, « vraiment », « bien »…)
 //   3. couper avant une préposition (« pour », « avec », « de »…) en gardant le plus de mots possible
-//   4. tronquer à 5 mots en retirant les petits mots de liaison
+//   4. tronquer à 4 mots en retirant les petits mots de liaison
 
-export const MAX_WORDS = 5;
+export const MAX_WORDS = 4;
 
 const B = '(?<![\\p{L}\'’])';
 const E = '(?![\\p{L}])';
@@ -55,12 +55,15 @@ export function summarize(text) {
     .filter((w) => w && !EMPTY.has(lc(w)));
   if (list.length <= MAX_WORDS) return cap(list.join(' '));
 
-  // 3. couper avant une préposition, le plus loin possible
-  for (let i = MAX_WORDS; i >= 2; i--) {
-    if (PREPS.has(lc(list[i]))) return cap(trimTail(list.slice(0, i)).join(' '));
+  // 3. couper avant une préposition, si on garde au moins 3 mots (« Envoyer devis à Marc »)
+  for (let i = MAX_WORDS; i >= 3; i--) {
+    if (PREPS.has(lc(list[i]))) {
+      const head = trimTail(list.slice(0, i));
+      if (head.length >= 3) return cap(head.join(' '));
+    }
   }
 
-  // 4. retirer les petits mots de liaison et tronquer
-  list = list.filter((w, i) => i === 0 || !LIGHT.has(lc(w)));
+  // 4. retirer toutes les prépositions et tronquer (« Réserver table restaurant italien »)
+  list = list.filter((w, i) => i === 0 || (!PREPS.has(lc(w)) && !LIGHT.has(lc(w))));
   return cap(trimTail(list.slice(0, MAX_WORDS)).join(' '));
 }

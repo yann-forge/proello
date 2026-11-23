@@ -11,7 +11,7 @@ import { renderList } from './views/list.js';
 import { renderGantt } from './views/gantt.js';
 import { renderMatrix } from './views/matrix.js';
 
-export const VERSION = '0.2.0';
+export const VERSION = '0.2.1';
 
 const VIEWS = { list: renderList, gantt: renderGantt, matrix: renderMatrix };
 let current = VIEWS[lsGet('proello.view', 'list')] ? lsGet('proello.view', 'list') : 'list';
@@ -291,9 +291,10 @@ $('#shortenBtn').addEventListener('click', () => {
   $('#menu').close();
   const before = store.all();
   const long = before.filter((t) => t.title.split(/\s+/).length > MAX_WORDS);
-  if (!long.length) return toast('Tous les titres font déjà 5 mots ou moins.');
+  if (!long.length) return toast(`Tous les titres font déjà ${MAX_WORDS} mots ou moins.`);
   for (const t of long) {
-    const notes = t.notes ? `${t.title}\n\n${t.notes}` : t.title;
+    // si un détail existe déjà (texte dicté), on le garde tel quel ; sinon l'ancien titre devient le détail
+    const notes = t.notes || t.title;
     store.update(t.id, { title: summarize(t.title), notes });
   }
   toast(`${plural(long.length, 'titre')} raccourci${long.length > 1 ? 's' : ''}`, { label: 'Annuler', run: () => store.replaceAll(before) });

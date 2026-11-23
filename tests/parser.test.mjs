@@ -9,7 +9,7 @@ const p = (s) => parseDictation(s, NOW);
 
 test('découpe une dictée en plusieurs tâches', () => {
   const r = p("il faut que j'appelle le plombier puis acheter du pain ensuite envoyer le devis à Marc");
-  assert.deepEqual(r.map((t) => t.title), ['Appeler le plombier', 'Acheter du pain', 'Envoyer le devis à Marc']);
+  assert.deepEqual(r.map((t) => t.title), ['Appeler le plombier', 'Acheter du pain', 'Envoyer devis à Marc']);
 });
 
 test('remet le verbe à l’infinitif après « il faut que je »', () => {
@@ -54,18 +54,19 @@ test('ne coupe pas en plusieurs tâches sur les nombres ni les virgules', () => 
   assert.equal(r[0].end, null);
 });
 
-test('résume en 5 mots maximum et garde le texte dicté en détail', () => {
+test('résume en 4 mots maximum et garde le texte dicté en détail', () => {
   const cases = [
     ["il faut que j'appelle le plombier parce que l'évier de la cuisine fuit depuis hier", 'Appeler le plombier'],
     ['envoyer le devis à Marc pour la rénovation de la salle de bain', 'Envoyer devis à Marc'],
-    ["réserver une table au restaurant italien pour l'anniversaire de Léa", 'Réserver table au restaurant italien'],
-    ['préparer la présentation pour le client Dupont avec les chiffres du trimestre', 'Préparer présentation pour client Dupont'],
+    ["réserver une table au restaurant italien pour l'anniversaire de Léa", 'Réserver table restaurant italien'],
+    ['préparer la présentation pour le client Dupont avec les chiffres du trimestre', 'Préparer présentation client Dupont'],
     ['faire un point avec toute mon équipe sur les objectifs commerciaux', 'Faire point avec équipe'],
+    ['nettoyer entièrement la voiture familiale avant le départ en vacances', 'Nettoyer entièrement voiture familiale'],
   ];
   for (const [said, title] of cases) {
     const [t] = p(said);
     assert.equal(t.title, title);
-    assert.ok(t.title.split(' ').length <= 5);
+    assert.ok(t.title.split(' ').length <= 4);
     assert.ok(t.notes.length > t.title.length);
   }
 });
