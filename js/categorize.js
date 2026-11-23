@@ -56,6 +56,7 @@ const KEYWORDS = {
   'courses-repas': ['course', 'repas', 'menu', 'frigo', 'supermarche', 'marche', 'diner', 'dejeuner', 'cuisine', 'drive', 'liste de course'],
   sante: ['medecin', 'docteur', 'dentiste', 'pharmac', 'vaccin', 'ordonnance', 'kine', 'sante', 'ophtalmo', 'pediatre', 'orthophon', 'hopital', 'analyse', 'radio'],
   'sorties-loisirs': ['sortie', 'cinema', 'parc', 'musee', 'vacances', 'week end', 'loisir', 'anniversaire', 'zoo', 'piscine'],
+  budget: ['budget', 'depense', 'epargne', 'economie', 'compte', 'virement', 'argent de poche', 'pension', 'loyer'],
   'budget-administratif': ['budget', 'factur', 'impot', 'banque', 'assuranc', 'papier', 'caf', 'administr', 'mutuelle', 'inscription'],
 
   entrainement: ['entrain', 'seance', 'footing', 'running', 'muscu', 'fractionne', 'sortie velo', 'natation', 'cardio', 'coach', 'salle'],

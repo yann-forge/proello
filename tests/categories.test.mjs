@@ -22,6 +22,7 @@ test('chaque profil a ses catégories, avec les catégories communes', () => {
     assert.equal(new Set(p.categories.map((c) => c.id)).size, names.length, `${p.name} : identifiants uniques`);
   }
   assert.ok(PRESETS.artiste.categories.some((c) => c.name === 'Practice routine'));
+  for (const p of Object.values(PRESETS)) assert.equal(p.categories.length, 9, `${p.name} : 9 catégories`);
 });
 
 test('artiste', () => {
@@ -46,6 +47,8 @@ test('autres profils', () => {
   assert.equal(cat('etudiant', 'Réviser le partiel de droit'), 'Examens');
   assert.equal(cat('etudiant', 'Faire les courses'), 'Quotidien & maison'); // et pas « Cours »
   assert.equal(cat('parent', 'Prendre rendez-vous chez le pédiatre'), 'Santé');
+  assert.equal(cat('parent', "Revoir le budget des vacances et l'épargne"), 'Budget');
+  assert.equal(cat('parent', 'Renvoyer le formulaire de la CAF'), 'Administratif');
   assert.equal(cat('sportif', 'Séance de fractionné mardi'), 'Entraînement');
   assert.equal(cat('personnel', 'Appeler maman pour son anniversaire'), 'Famille & amis');
 });

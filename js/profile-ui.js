@@ -1,7 +1,7 @@
 // Interface des profils et catégories : écran d'accueil, fenêtre « Profil et catégories »,
 // barre de filtre, listes de choix et pastilles affichées dans les vues.
 
-import { profiles, PRESETS, COLORS, newCategoryId } from './profiles.js';
+import { profiles, PRESETS, COLORS, MAX_CATEGORIES, newCategoryId } from './profiles.js';
 import { categorize } from './categorize.js';
 import { $, esc, lsGet, lsSet } from './util.js';
 
@@ -134,6 +134,8 @@ function renderProfileDialog() {
     )
     .join('');
   $('#catAdd').hidden = !active;
+  $('#catAdd').textContent = active && active.categories.length >= MAX_CATEGORIES ? `${MAX_CATEGORIES} catégories maximum` : '+ Ajouter une catégorie';
+  $('#catAdd').classList.toggle('muted-link', !!active && active.categories.length >= MAX_CATEGORIES);
   const isPreset = active && PRESETS[active.id];
   $('#profileReset').hidden = !(isPreset && profiles.isModified(active.id));
   $('#profileDelete').hidden = !active || !!isPreset;
@@ -186,6 +188,9 @@ $('#catList').addEventListener('click', (e) => {
 });
 
 $('#catAdd').addEventListener('click', () => {
+  if (profiles.categories().length >= MAX_CATEGORIES) {
+    return notify(`${MAX_CATEGORIES} catégories maximum : renomme ou supprime une catégorie pour en mettre une autre.`);
+  }
   profiles.update((p) => {
     const name = 'Nouvelle catégorie';
     p.categories.push({ id: newCategoryId(name, p.categories), name, color: COLORS[p.categories.length % COLORS.length] });

@@ -26,7 +26,7 @@ const DEFS = [
   ['salarie', '🏢', 'Salarié / cadre', ['Projets', 'Réunions', 'Équipe & management', 'Reporting', 'Clients & partenaires', 'Formation & carrière', ADMIN, HOME, ME]],
   ['association', '🤝', 'Association / bénévole', ['Mécénat & financement', 'Événements', 'Adhérents & bénévoles', 'Partenariats', 'Communication', 'Réunions & AG', 'Administratif & compta', HOME, ME]],
   ['etudiant', '🎓', 'Étudiant', ['Cours', 'Devoirs & révisions', 'Examens', 'Projets & stages', 'Vie associative', 'Job & budget', ADMIN, HOME, ME]],
-  ['parent', '👨‍👩‍👧', 'Parent / famille', ['Enfants', 'École & activités', 'Courses & repas', 'Santé', 'Sorties & loisirs', 'Budget & administratif', HOME, ME]],
+  ['parent', '👨‍👩‍👧', 'Parent / famille', ['Enfants', 'École & activités', 'Courses & repas', 'Santé', 'Sorties & loisirs', 'Budget', ADMIN, HOME, ME]],
   ['sportif', '🏃', 'Sportif / coach', ['Entraînement', 'Compétitions', 'Nutrition', 'Récupération & santé', 'Matériel', 'Objectifs & suivi', ADMIN, HOME, ME]],
   ['personnel', '🏠', 'Vie personnelle', ['Travail', 'Courses', 'Santé & sport', 'Famille & amis', 'Loisirs', 'Finances', ADMIN, HOME, ME]],
 ];
@@ -38,6 +38,9 @@ export const PRESETS = Object.fromEntries(
 );
 
 export const COMMON_CATEGORIES = [ADMIN, HOME, ME];
+
+// Nombre de catégories par profil (essai à 9, voulu par l'utilisateur)
+export const MAX_CATEGORIES = 9;
 
 const K_PROFILES = 'proello.profiles'; // profils créés ou modifiés
 const K_ACTIVE = 'proello.profile.active';
