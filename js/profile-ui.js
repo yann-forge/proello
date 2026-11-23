@@ -80,7 +80,6 @@ function renderWelcome() {
           <span class="emoji">${p.emoji}</span>
           <b>${esc(p.name)}</b>
           <span class="cats">${p.categories
-            .slice(0, 6)
             .map((c) => `<i style="--c:${c.color}">${esc(c.name)}</i>`)
             .join('')}</span>
         </button>`
