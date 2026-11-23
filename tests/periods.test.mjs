@@ -35,8 +35,8 @@ test('périodes : entre… et, du… au, de… à', () => {
   assert.deepEqual(w('du 28/11 au 01/12'), ['2026-11-28', '2026-12-01']);
 });
 
-test('échéances : pour, avant, d’ici, au plus tard', () => {
-  assert.deepEqual(w('pour vendredi'), ['2026-11-23', '2026-11-27']);
+test('échéances : avant, d’ici, au plus tard (et « pour » = le jour même)', () => {
+  assert.deepEqual(w('pour vendredi'), ['2026-11-27', '2026-11-27']); // rapport #3 : « pour » = ce jour-là
   assert.deepEqual(w('avant le 4 décembre'), ['2026-11-23', '2026-12-04']);
   assert.deepEqual(w("d'ici la fin du mois"), ['2026-11-23', '2026-11-30']);
   assert.deepEqual(w('au plus tard jeudi'), ['2026-11-23', '2026-11-26']);
@@ -77,7 +77,7 @@ test('plusieurs tâches, chacune avec sa propre période', () => {
     r.map((t) => [t.title, t.start, t.end, t.urgent, t.important]),
     [
       ['Préparer salon du livre', '2026-11-30', '2026-12-02', false, true],
-      ['Appeler la banque', '2026-11-23', '2026-11-27', true, false],
+      ['Appeler la banque', '2026-11-27', '2026-11-27', true, false],
       ['Repeindre la chambre', '2026-12-05', '2026-12-07', false, false],
       ['Faire les courses', '2026-11-24', '2026-11-24', false, false],
     ]

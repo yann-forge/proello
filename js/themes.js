@@ -140,6 +140,8 @@ export function applyThemes(tasks) {
       const theme = prev.theme ? prev.theme.label : followVerb ? objectOf(prev.title) : null;
       if (theme) {
         const themeWords = words(theme);
+        // « faire un bilan » → « Bilan mécénat » : « faire » n'apporte rien au titre
+        if (head.verb && fold(head.verb) === 'faire') head.verb = null;
         let title = fit([head.verb ? [head.verb] : [], head.nouns.slice(0, 2), themeWords]);
         if (head.verb && words(title).length >= MAX_WORDS && words([...head.nouns.slice(0, 2), ...themeWords].join(' ')).length <= MAX_WORDS) {
           title = [...head.nouns.slice(0, 2), ...themeWords].join(' ');

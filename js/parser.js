@@ -17,7 +17,12 @@ const SEPARATORS = word(
     'et puis', 'et ensuite', 'et aussi', 'et après ça', 'puis', 'ensuite', 'après ça', 'après quoi',
     'tâche suivante', 'nouvelle tâche', 'autre tâche', 'prochaine tâche', 'autre chose', 'point suivant',
     'premièrement', 'deuxièmement', 'troisièmement', 'quatrièmement', 'cinquièmement', 'sixièmement',
-    "d['’]abord", 'pour finir', 'enfin',
+    "d['’]abord", 'pour finir', 'pour commencer', 'enfin',
+    // enchaînements (rapport #3 : « dans un second temps »)
+    'dans un (?:premier|second|deuxième|troisième|quatrième|dernier|autre) temps',
+    'en (?:premier|second|deuxième|troisième|dernier) lieu',
+    'par la suite', 'après cela', 'suite à (?:cela|ça)', "une fois (?:que (?:c['’]est|ce sera) |cela |ça )?fait",
+    'en parallèle', 'parallèlement', "d['’]autre part", 'par ailleurs',
     '(?:première|deuxième|seconde|troisième|quatrième|cinquième|sixième|dernière) tâche',
   ].join('|')
 );

@@ -38,7 +38,7 @@ test('détecte les dates', () => {
   assert.equal(a.title, 'Appeler Paul');
   assert.deepEqual([a.start, a.end], ['2026-11-24', '2026-11-24']);
   assert.equal(b.title, 'Réserver le restaurant');
-  assert.deepEqual([b.start, b.end], ['2026-11-23', '2026-11-27']);
+  assert.deepEqual([b.start, b.end], ['2026-11-27', '2026-11-27']);
   assert.equal(c.title, 'Dentiste');
   assert.equal(c.end, '2026-12-03');
   assert.equal(d.end, '2026-12-07');
@@ -83,4 +83,17 @@ test('pas de détail quand la tâche est déjà courte', () => {
 test('ignore les fragments vides', () => {
   assert.deepEqual(p('premièrement'), []);
   assert.deepEqual(p('  '), []);
+});
+
+test('enchaînements : « dans un second temps », « par la suite », « une fois que c’est fait »… (rapport #3)', () => {
+  const said = [
+    'dans un premier temps appeler le notaire',
+    'dans un second temps envoyer le compromis',
+    'par la suite prévenir la banque',
+    "une fois que c'est fait réserver le déménageur",
+    'en parallèle trier les cartons',
+  ].join(' ');
+  assert.deepEqual(p(said).map((t) => t.title), [
+    'Appeler le notaire', 'Envoyer le compromis', 'Prévenir la banque', 'Réserver le déménageur', 'Trier les cartons',
+  ]);
 });

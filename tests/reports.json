@@ -34,5 +34,30 @@
     ],
     "comment": "Cette tâche à été déduite d'un texte regroupant plusieurs tâches. Celle-ci était adossé au texte d'une autre tâche qui a été énuméré dans la même dictée : 50 mails dans l'objectif de trouver des mécènes pour les activités de l'association tout le monde sans trois. Étant donné que le bilan rapport est celui de l'envoi de mail pour le mécénat le thème mécénat doit rester pour les deux tâches pour bien les identifier dans le titre. Il serait bon également de créer un bouton dans chaque tâche qui permet d'afficher le texte initial dictée dans son ensemble. Et quand on clique sur ce bouton en plus du texte initial voir en combien de tâches il a été séparé pour avoir un historique traçable",
     "pending": "Le rapport ne contient que la phrase de la tâche (créée avant la 0.4.0), pas la dictée complète. Cas reconstitué et couvert dans tests/themes.test.mjs."
+  },
+  {
+    "issue": 3,
+    "now": "2026-11-23T19:09",
+    "input": "envoyer 50 mail pour le projet mécénat de l'association d'ici le mercredi 25 novembre dans un second temps faire un bilan au membre de l'association sur ces envois pour le 2 décembre",
+    "problems": [
+      "decoupage"
+    ],
+    "expected": [
+      {
+        "title": "Envoyer 50 mail mécénat",
+        "start": "2026-11-23",
+        "end": "2026-11-25",
+        "urgent": false,
+        "important": false
+      },
+      {
+        "title": "Bilan Mécénat",
+        "start": "2026-12-02",
+        "end": "2026-12-02",
+        "urgent": false,
+        "important": false
+      }
+    ],
+    "comment": ""
   }
 ]

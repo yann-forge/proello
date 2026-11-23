@@ -8,7 +8,7 @@ Une to-do list qu'on remplit **à la voix** et qu'on organise selon l'**urgence*
 
 - 🎙️ **Dictée vocale** : un bouton, on parle, et plusieurs tâches sont créées d'un coup.
   Sépare les tâches par « puis », « ensuite », « et aussi », « tâche suivante »…
-  Les mots « urgent », « important » et les dates sont reconnus automatiquement, y compris les périodes : « entre jeudi et vendredi », « du 5 au 7 décembre », « pour vendredi », « pendant 3 jours », « la semaine prochaine »… Une phrase de précision (« À faire avant jeudi. ») est rattachée à la tâche précédente.
+  Les mots « urgent », « important » et les dates sont reconnus automatiquement, y compris les périodes : « entre jeudi et vendredi », « du 5 au 7 décembre », « d'ici vendredi », « pendant 3 jours », « la semaine prochaine »… Une phrase de précision (« À faire avant jeudi. ») est rattachée à la tâche précédente.
 - ✏️ **Vérification du texte** : après la dictée, le texte reste modifiable (corriger un mot, continuer à dicter) avant de créer les tâches.
 - ⚑ **Signaler une erreur** : depuis une tâche, la fenêtre de validation ou le menu. Le rapport (texte dicté, ce que l'app a compris, ce qui était attendu) part dans un dépôt GitHub privé et devient un test automatique.
 - ✅ **Trois vues** :

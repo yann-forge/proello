@@ -192,7 +192,8 @@ function findDates(text, now) {
 
 const RANGE_START = /(?:entre|du|de|depuis|à partir du|à partir de|à partir d['’]|à compter du|à compter de|dès)\s*$/iu;
 const RANGE_MID = /^\s*,?\s*(?:et|au|à|jusqu['’]au|jusqu['’]à|jusqu['’]|-|–|—)\s*$/iu;
-const DEADLINE = /(?:pour|avant|d['’]ici|au plus tard|jusqu['’]au|jusqu['’]à|à rendre|à terminer|à finir|à boucler|à livrer|dernier délai|délai|échéance|deadline|maximum|max)\s*,?\s*$/iu;
+// « pour le 2 décembre » = ce jour-là (rapport #3) ; « avant / d'ici / au plus tard » = échéance
+const DEADLINE = /(?:avant|d['’]ici|au plus tard|jusqu['’]au|jusqu['’]à|à rendre|à terminer|à finir|à boucler|à livrer|dernier délai|délai|échéance|deadline|maximum|max)\s*,?\s*$/iu;
 const START = /(?:à partir du|à partir de|à partir d['’]|à compter du|à compter de|dès|commencer|démarrer)\s*$/iu;
 const DURATION = rx(`(?:pendant|durant|sur|en)\\s+(${NUM})\\s+(jours?|semaines?)`);
 
@@ -234,7 +235,9 @@ export function extractWhen(text, now = new Date()) {
         start = a.start;
         end = a.end;
         open = !a.period;
-        cuts.push([a.index, a.endIndex]);
+        // « pour vendredi », « prévu le 3 » : le petit mot devant la date part avec elle
+        const lead = before.match(/(?:pour|prévue?s?|programmée?s?)\s*,?\s*$/iu);
+        cuts.push([lead ? lead.index : a.index, a.endIndex]);
       }
     }
   }
