@@ -37,6 +37,8 @@ function make(input) {
     start: input.start || null,
     end: input.end || null,
     notes: input.notes || '',
+    source: input.source || '', // texte dicté ou tapé d'origine
+    dictatedAt: input.dictatedAt || null, // moment de la dictée (les dates relatives en dépendent)
     createdAt: Date.now(),
   });
 }

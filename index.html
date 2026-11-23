@@ -60,14 +60,21 @@
 
     <!-- Enregistrement vocal -->
     <div id="recorder" class="recorder" hidden>
-      <div class="rec-card" role="dialog" aria-modal="true" aria-labelledby="recTitle">
-        <div class="rec-mic"><span></span></div>
+      <div class="rec-card" id="recCard" data-mode="listening" role="dialog" aria-modal="true" aria-labelledby="recTitle">
+        <div class="rec-mic listen-only"><span></span></div>
         <h2 id="recTitle">Je t'écoute…</h2>
-        <p class="muted">Dis « puis » ou « ensuite » entre deux tâches. Tu peux ajouter « urgent », « important », « demain », « vendredi »…</p>
-        <div id="recText" class="rec-text"><span class="muted">Parle maintenant</span></div>
-        <div class="rec-actions">
+        <p class="muted listen-only">Dis « puis » ou « ensuite » entre deux tâches. Tu peux ajouter « urgent », « important », « entre jeudi et vendredi »…</p>
+        <p class="muted edit-only">Corrige les mots mal compris, ajoute ou retire ce que tu veux, puis valide.</p>
+        <div id="recText" class="rec-text listen-only"><span class="muted">Parle maintenant</span></div>
+        <textarea id="recEdit" class="rec-edit edit-only" rows="6" aria-label="Texte dicté" placeholder="Tape ou dicte tes tâches…"></textarea>
+        <div class="rec-actions listen-only">
           <button id="recCancel" class="btn ghost">Annuler</button>
           <button id="recStop" class="btn primary">Terminer</button>
+        </div>
+        <div class="rec-actions edit-only">
+          <button id="recCancel2" class="btn ghost">Annuler</button>
+          <button id="recMore" class="btn ghost">🎙 Continuer</button>
+          <button id="recValidate" class="btn primary">Valider</button>
         </div>
       </div>
     </div>
@@ -81,7 +88,11 @@
         </header>
         <p class="muted small">Vérifie, corrige, puis choisis l'urgence et l'importance.</p>
         <ul id="reviewList" class="review-list"></ul>
-        <button type="button" id="reviewAddRow" class="link">+ Ajouter une ligne</button>
+        <div class="review-links">
+          <button type="button" id="reviewAddRow" class="link">+ Ajouter une ligne</button>
+          <button type="button" id="reviewEditText" class="link">✎ Modifier le texte</button>
+          <button type="button" id="reviewReport" class="link muted-link">⚑ Signaler une erreur</button>
+        </div>
         <details class="raw">
           <summary>Texte reconnu</summary>
           <p id="reviewRaw"></p>
@@ -112,6 +123,7 @@
         </div>
         <label class="field"><span>Détail</span><textarea name="notes" rows="4" placeholder="Ce que tu as dicté, des liens, des personnes…"></textarea></label>
         <label class="check-row"><input type="checkbox" name="done" /> Terminée</label>
+        <button type="button" id="editorReport" class="link muted-link">⚑ Signaler une erreur de compréhension</button>
         <footer>
           <button type="button" id="editorDelete" class="btn danger">Supprimer</button>
           <button value="save" class="btn primary">Enregistrer</button>
@@ -131,6 +143,7 @@
           <label class="menu-item">⬆︎ Importer une sauvegarde<input type="file" id="importInput" accept="application/json,.json" hidden /></label>
           <button type="button" id="clearDoneBtn" class="menu-item">✓ Effacer les tâches terminées</button>
           <button type="button" id="shortenBtn" class="menu-item">✂︎ Raccourcir les titres trop longs</button>
+          <button type="button" id="menuReport" class="menu-item">⚑ Signaler une erreur</button>
         </div>
         <div class="install-help">
           <h3>Installer l'application</h3>
@@ -138,6 +151,42 @@
           <p><b>iPhone / iPad (Safari) :</b> bouton Partager → « Sur l'écran d'accueil ».</p>
         </div>
         <p class="muted small">Tes tâches sont enregistrées sur cet appareil uniquement. <span id="versionLabel"></span></p>
+      </form>
+    </dialog>
+
+    <!-- Rapport d'erreur -->
+    <dialog id="report" class="sheet">
+      <form method="dialog" id="reportForm">
+        <header>
+          <h2>Signaler une erreur</h2>
+          <button value="cancel" class="icon-btn" formnovalidate aria-label="Fermer">✕</button>
+        </header>
+        <p class="muted small">Ton rapport part dans ton dépôt GitHub privé « proello-retours ». Il sert à corriger l'app et devient un test automatique.</p>
+        <label class="field"><span>Texte dicté</span><textarea name="input" rows="3" placeholder="La phrase que tu as dite ou tapée"></textarea></label>
+        <div class="field">
+          <span>Ce que l'app a compris</span>
+          <ul id="reportUnderstood" class="report-understood"></ul>
+        </div>
+        <fieldset class="problems">
+          <legend>Qu'est-ce qui ne va pas ?</legend>
+          <label><input type="checkbox" name="problem" value="decoupage" /><span>Séparation des tâches</span></label>
+          <label><input type="checkbox" name="problem" value="titre" /><span>Titre</span></label>
+          <label><input type="checkbox" name="problem" value="dates" /><span>Dates / période</span></label>
+          <label><input type="checkbox" name="problem" value="priorite" /><span>Urgent / important</span></label>
+          <label><input type="checkbox" name="problem" value="voix" /><span>Mots mal entendus</span></label>
+          <label><input type="checkbox" name="problem" value="autre" /><span>Autre</span></label>
+        </fieldset>
+        <div class="field">
+          <span>Ce que j'attendais</span>
+          <p class="muted small">Corrige ces tâches comme l'app aurait dû les comprendre.</p>
+          <ul id="reportExpected" class="review-list"></ul>
+          <button type="button" id="reportAddRow" class="link">+ Ajouter une tâche</button>
+        </div>
+        <label class="field"><span>Commentaire (facultatif)</span><textarea name="comment" rows="2" placeholder="Précise ce qui ne va pas"></textarea></label>
+        <footer>
+          <button type="button" id="reportCopy" class="btn ghost">Copier</button>
+          <button value="send" class="btn primary">Envoyer sur GitHub</button>
+        </footer>
       </form>
     </dialog>
 

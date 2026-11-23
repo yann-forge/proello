@@ -9,6 +9,8 @@ Une to-do list qu'on remplit **à la voix** et qu'on organise selon l'**urgence*
 - 🎙️ **Dictée vocale** : un bouton, on parle, et plusieurs tâches sont créées d'un coup.
   Sépare les tâches par « puis », « ensuite », « et aussi », « tâche suivante »…
   Les mots « urgent », « important » et les dates sont reconnus automatiquement, y compris les périodes : « entre jeudi et vendredi », « du 5 au 7 décembre », « pour vendredi », « pendant 3 jours », « la semaine prochaine »… Une phrase de précision (« À faire avant jeudi. ») est rattachée à la tâche précédente.
+- ✏️ **Vérification du texte** : après la dictée, le texte reste modifiable (corriger un mot, continuer à dicter) avant de créer les tâches.
+- ⚑ **Signaler une erreur** : depuis une tâche, la fenêtre de validation ou le menu. Le rapport (texte dicté, ce que l'app a compris, ce qui était attendu) part dans un dépôt GitHub privé et devient un test automatique.
 - ✅ **Trois vues** :
   1. **Liste** : toutes les tâches triées par priorité, avec filtres.
   2. **Planning** : un Gantt où l'on déplace et étire les tâches au doigt ou à la souris.
@@ -29,6 +31,7 @@ Aucune dépendance ni étape de build : HTML, CSS et JavaScript.
 node tools/serve.mjs        # lance l'app sur http://localhost:5173
 node --test tests/          # tests de l'analyseur de dictée
 node tools/make-icons.mjs   # régénère les icônes
+node tools/import-reports.mjs  # importe les rapports d'erreur en tests
 ```
 
 Chaque push sur `main` est publié automatiquement sur GitHub Pages.

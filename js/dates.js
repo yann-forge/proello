@@ -5,6 +5,9 @@ const pad = (n) => String(n).padStart(2, '0');
 
 export const toISO = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
+/** Date et heure locales 'AAAA-MM-JJTHH:MM' (relues comme heure locale par new Date()). */
+export const toLocalStamp = (d) => `${toISO(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
 export const fromISO = (s) => {
   const [y, m, d] = s.split('-').map(Number);
   return new Date(y, m - 1, d);

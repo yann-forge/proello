@@ -5,13 +5,14 @@ import { parseDictation } from './parser.js';
 import { summarize, MAX_WORDS } from './summarize.js';
 import { startDictation, voiceSupported, VOICE_ERRORS } from './voice.js';
 import { QUADS, quadrantOf } from './tasks.js';
-import { relLabel, todayISO } from './dates.js';
+import { relLabel, todayISO, toLocalStamp } from './dates.js';
+import { openReport, initReport } from './report.js';
 import { $, esc, lsGet, lsSet } from './util.js';
 import { renderList } from './views/list.js';
 import { renderGantt } from './views/gantt.js';
 import { renderMatrix } from './views/matrix.js';
 
-export const VERSION = '0.3.0';
+import { VERSION } from './version.js';
 
 const VIEWS = { list: renderList, gantt: renderGantt, matrix: renderMatrix };
 let current = VIEWS[lsGet('proello.view', 'list')] ? lsGet('proello.view', 'list') : 'list';
@@ -73,23 +74,33 @@ function toast(msg, action) {
 }
 
 const plural = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
+initReport({ toast });
 
 /* ---------- Ajout rapide au clavier ---------- */
 
 $('#quickAdd').addEventListener('submit', (e) => {
   e.preventDefault();
   const input = $('#quickInput');
-  const items = parseDictation(input.value);
+  const at = new Date();
+  const items = parseDictation(input.value, at);
   if (!items.length) return;
-  store.add(items);
+  store.add(withSource(items, input.value, at));
   input.value = '';
   toast(`${plural(items.length, 'tâche')} ajoutée${items.length > 1 ? 's' : ''}`);
 });
 
 /* ---------- Dictée ---------- */
 
+// Deux étapes : 1) j'écoute (texte en direct)  2) tu vérifies et corriges le texte, puis tu valides.
+
 let session = null;
 let lastHeard = '';
+let baseText = ''; // texte déjà validé à l'étape « corriger », complété si on continue à dicter
+
+/** Garde le texte d'origine et la date de la dictée sur chaque tâche (utile pour signaler une erreur). */
+function withSource(items, source, at) {
+  return items.map((t) => ({ ...t, source: source.trim(), dictatedAt: toLocalStamp(at) }));
+}
 
 $('#micBtn').addEventListener('click', () => {
   if (!voiceSupported) {
@@ -97,56 +108,85 @@ $('#micBtn').addEventListener('click', () => {
     $('#quickInput').focus();
     return;
   }
+  baseText = '';
   openRecorder();
+  listen();
 });
 
 function openRecorder() {
-  const rec = $('#recorder');
-  const out = $('#recText');
-  out.innerHTML = '<span class="muted">Parle maintenant</span>';
-  lastHeard = '';
-  rec.hidden = false;
+  $('#recorder').hidden = false;
   document.body.classList.add('recording');
-  try {
-    session = startDictation({
-      onUpdate: (final, interim) => {
-        lastHeard = `${final} ${interim}`.trim();
-        out.innerHTML = `${esc(final)} <span class="interim">${esc(interim)}</span>`;
-        out.scrollTop = out.scrollHeight;
-      },
-      onError: (code) => {
-        closeRecorder();
-        toast(VOICE_ERRORS[code] || `Erreur de dictée (${code}).`);
-      },
-    });
-  } catch (err) {
-    closeRecorder();
-    toast("Impossible de démarrer la dictée.");
-  }
 }
 
 function closeRecorder() {
+  session?.cancel();
+  session = null;
   $('#recorder').hidden = true;
   document.body.classList.remove('recording');
 }
 
-$('#recCancel').addEventListener('click', () => {
-  session?.cancel();
-  session = null;
-  closeRecorder();
-});
+function setRecMode(mode) {
+  $('#recCard').dataset.mode = mode;
+  $('#recTitle').textContent = mode === 'listening' ? "Je t'écoute…" : 'Vérifie le texte';
+}
+
+function listen() {
+  setRecMode('listening');
+  const out = $('#recText');
+  out.innerHTML = baseText ? `${esc(baseText)} <span class="muted">…</span>` : '<span class="muted">Parle maintenant</span>';
+  lastHeard = '';
+  try {
+    session = startDictation({
+      onUpdate: (final, interim) => {
+        lastHeard = `${final} ${interim}`.trim();
+        out.innerHTML = `${esc(baseText)} ${esc(final)} <span class="interim">${esc(interim)}</span>`;
+        out.scrollTop = out.scrollHeight;
+      },
+      onError: (code) => {
+        session = null;
+        toast(VOICE_ERRORS[code] || `Erreur de dictée (${code}).`);
+        showEditor(); // on garde ce qui a déjà été dit, modifiable
+      },
+    });
+  } catch {
+    session = null;
+    toast('Impossible de démarrer la dictée.');
+    showEditor();
+  }
+}
+
+function showEditor(text = baseText) {
+  setRecMode('editing');
+  const ta = $('#recEdit');
+  ta.value = text;
+  ta.style.height = '';
+  ta.style.height = Math.min(ta.scrollHeight + 4, window.innerHeight * 0.4) + 'px';
+}
+
+$('#recCancel').addEventListener('click', closeRecorder);
+$('#recCancel2').addEventListener('click', closeRecorder);
 
 $('#recStop').addEventListener('click', async () => {
   const s = session;
   session = null;
   $('#recStop').disabled = true;
   const text = s ? await Promise.race([s.stop(), new Promise((r) => setTimeout(() => r(null), 2500))]) : '';
-  const finalText = text || lastHeard;
   $('#recStop').disabled = false;
+  baseText = [baseText, text || lastHeard].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  showEditor();
+});
+
+$('#recMore').addEventListener('click', () => {
+  baseText = $('#recEdit').value.trim();
+  listen();
+});
+
+$('#recValidate').addEventListener('click', () => {
+  const text = $('#recEdit').value.trim();
+  const items = parseDictation(text, new Date());
+  if (!items.length) return toast("Je n'ai trouvé aucune tâche dans ce texte.");
   closeRecorder();
-  const items = parseDictation(finalText || '');
-  if (!items.length) return toast("Je n'ai rien compris. Réessaie en parlant près du micro.");
-  openReview(items, finalText);
+  openReview(items, text);
 });
 
 /* ---------- Validation des tâches dictées ---------- */
@@ -173,7 +213,12 @@ function refreshReviewCount() {
   $('#reviewSave').textContent = n ? `Ajouter ${plural(n, 'tâche')}` : 'Fermer';
 }
 
+let reviewSource = '';
+let reviewAt = new Date();
+
 function openReview(items, raw) {
+  reviewSource = raw || '';
+  reviewAt = new Date();
   const list = $('#reviewList');
   list.replaceChildren(...items.map(reviewRow));
   $('#reviewRaw').textContent = raw || '';
@@ -203,6 +248,18 @@ $('#reviewAddRow').addEventListener('click', () => {
   refreshReviewCount();
 });
 
+$('#reviewEditText').addEventListener('click', () => {
+  $('#review').close();
+  baseText = reviewSource;
+  openRecorder();
+  showEditor();
+});
+
+$('#reviewReport').addEventListener('click', () => {
+  $('#review').close();
+  openReport({ input: reviewSource, at: reviewAt });
+});
+
 $('#review').addEventListener('close', () => {
   if ($('#review').returnValue !== 'save') return;
   const items = [...$('#reviewList').children].map((li) => ({
@@ -213,7 +270,7 @@ $('#review').addEventListener('close', () => {
     end: li.dataset.end || null,
     notes: li.dataset.notes || '',
   }));
-  const created = store.add(items);
+  const created = store.add(withSource(items, reviewSource, reviewAt));
   if (created.length) toast(`${plural(created.length, 'tâche')} ajoutée${created.length > 1 ? 's' : ''}`);
 });
 
@@ -263,6 +320,18 @@ $('#editor').addEventListener('close', () => {
   };
   if (form.done.checked !== t.done) patch.done = form.done.checked;
   store.update(editingId, patch);
+});
+
+$('#editorReport').addEventListener('click', () => {
+  const t = store.get(editingId);
+  $('#editor').returnValue = '';
+  $('#editor').close();
+  if (t) openReport({ input: t.source || t.notes || t.title, at: t.dictatedAt ? new Date(t.dictatedAt) : new Date(t.createdAt) });
+});
+
+$('#menuReport').addEventListener('click', () => {
+  $('#menu').close();
+  openReport({ input: '', at: new Date() });
 });
 
 $('#editorDelete').addEventListener('click', () => {
