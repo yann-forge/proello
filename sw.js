@@ -1,7 +1,7 @@
 // Service worker : l'app fonctionne hors ligne.
 // Stratégie « réseau d'abord » : toujours la dernière version quand on est connecté, le cache sinon.
 
-const CACHE = 'proello-v9';
+const CACHE = 'proello-v10';
 const ASSETS = [
   './',
   'index.html',
@@ -12,6 +12,9 @@ const ASSETS = [
   'js/summarize.js',
   'js/when.js',
   'js/themes.js',
+  'js/profiles.js',
+  'js/categorize.js',
+  'js/profile-ui.js',
   'js/report.js',
   'js/version.js',
   'js/voice.js',

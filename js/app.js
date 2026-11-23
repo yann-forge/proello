@@ -13,6 +13,8 @@ import { renderGantt } from './views/gantt.js';
 import { renderMatrix } from './views/matrix.js';
 
 import { VERSION } from './version.js';
+import { profiles } from './profiles.js';
+import { initProfileUI, showWelcomeIfNeeded, openProfileDialog, renderCatFilter, filterTasks, withCategories, categoryOptions } from './profile-ui.js';
 
 const VIEWS = { list: renderList, gantt: renderGantt, matrix: renderMatrix };
 let current = VIEWS[lsGet('proello.view', 'list')] ? lsGet('proello.view', 'list') : 'list';
@@ -27,7 +29,8 @@ const ctx = {
 /* ---------- Rendu ---------- */
 
 function render() {
-  VIEWS[current]($('#view'), store.all(), ctx);
+  renderCatFilter(store.all());
+  VIEWS[current]($('#view'), filterTasks(store.all()), ctx);
   document.querySelectorAll('.tabs [data-view]').forEach((b) => {
     b.classList.toggle('on', b.dataset.view === current);
     b.setAttribute('aria-current', b.dataset.view === current ? 'page' : 'false');
@@ -75,6 +78,7 @@ function toast(msg, action) {
 
 const plural = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
 initReport({ toast });
+initProfileUI({ toast, render: () => render(), countTasks: (id) => store.all().filter((t) => t.category === id).length });
 
 /* ---------- Ajout rapide au clavier ---------- */
 
@@ -84,7 +88,7 @@ $('#quickAdd').addEventListener('submit', (e) => {
   const at = new Date();
   const items = parseDictation(input.value, at);
   if (!items.length) return;
-  store.add(withSource(items, input.value, at));
+  store.add(withSource(withCategories(items), input.value, at));
   input.value = '';
   toast(`${plural(items.length, 'tâche')} ajoutée${items.length > 1 ? 's' : ''}`);
 });
@@ -223,7 +227,7 @@ $('#recValidate').addEventListener('click', () => {
   const items = parseDictation(text, new Date());
   if (!items.length) return toast("Je n'ai trouvé aucune tâche dans ce texte.");
   closeRecorder();
-  openReview(items, text);
+  openReview(withCategories(items), text);
 });
 
 /* ---------- Validation des tâches dictées ---------- */
@@ -236,6 +240,7 @@ function reviewRow(t) {
   li.innerHTML = `
     <input class="rv-title" value="${esc(t.title)}" aria-label="Titre court" maxlength="80" />
     ${t.notes ? `<p class="rv-detail"><span>Détail :</span> ${esc(t.notes)}</p>` : ''}
+    <select class="cat-select rv-cat" aria-label="Catégorie">${categoryOptions(t.category)}</select>
     <div class="rv-meta">
       <button type="button" class="pill pill-u ${t.urgent ? 'on' : ''}" data-flag="urgent" aria-pressed="${!!t.urgent}">Urgent</button>
       <button type="button" class="pill pill-i ${t.important ? 'on' : ''}" data-flag="important" aria-pressed="${!!t.important}">Important</button>
@@ -303,6 +308,7 @@ $('#review').addEventListener('close', () => {
     title: li.querySelector('.rv-title').value,
     urgent: li.querySelector('[data-flag=urgent]').classList.contains('on'),
     important: li.querySelector('[data-flag=important]').classList.contains('on'),
+    category: li.querySelector('.rv-cat').value || null,
     start: li.dataset.start || null,
     end: li.dataset.end || null,
     notes: li.dataset.notes || '',
@@ -338,6 +344,7 @@ function openEditor(id) {
   form.end.value = t.end || '';
   form.notes.value = t.notes || '';
   form.done.checked = t.done;
+  form.category.innerHTML = categoryOptions(t.category);
   updateQuadHint();
   renderSource(t);
   const dlg = $('#editor');
@@ -355,6 +362,7 @@ $('#editor').addEventListener('close', () => {
     start: form.start.value || null,
     end: form.end.value || null,
     notes: form.notes.value,
+    category: form.category.value || null,
   };
   if (form.done.checked !== t.done) patch.done = form.done.checked;
   store.update(editingId, patch);
@@ -381,6 +389,10 @@ $('#editorDelete').addEventListener('click', () => {
 /* ---------- Menu ---------- */
 
 $('#menuBtn').addEventListener('click', () => $('#menu').showModal());
+$('#profileBtn').addEventListener('click', () => {
+  $('#menu').close();
+  openProfileDialog();
+});
 $('#versionLabel').textContent = `Version ${VERSION}.`;
 
 function clearDone() {
@@ -457,3 +469,4 @@ if ('serviceWorker' in navigator) {
 }
 
 render();
+showWelcomeIfNeeded();

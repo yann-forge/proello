@@ -3,6 +3,7 @@
 import { QUADS, QUAD_ORDER, quadrantOf, sortTasks } from '../tasks.js';
 import { relLabel, todayISO } from '../dates.js';
 import { esc, lsGet, lsSet } from '../util.js';
+import { catChip } from '../profile-ui.js';
 
 const state = lsGet('proello.list', { filter: 'todo', quad: null });
 
@@ -26,6 +27,7 @@ function item(t) {
     <div class="task-body">
       <button class="task-title" data-act="edit">${esc(t.title)}</button>
       <div class="task-meta">
+        ${catChip(t)}
         ${detailMark(t)}
         ${dateChip(t)}
         <button class="pill pill-u ${t.urgent ? 'on' : ''}" data-act="urgent" aria-pressed="${t.urgent}">Urgent</button>

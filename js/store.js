@@ -37,6 +37,7 @@ function make(input) {
     start: input.start || null,
     end: input.end || null,
     notes: input.notes || '',
+    category: input.category || null, // identifiant de catégorie du profil (voir profiles.js)
     source: input.source || '', // texte dicté ou tapé d'origine
     dictatedAt: input.dictatedAt || null, // moment de la dictée (les dates relatives en dépendent)
     dictationId: input.dictationId || null, // tâches issues de la même dictée

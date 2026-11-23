@@ -51,6 +51,7 @@
         <input id="quickInput" type="text" placeholder="Ajouter une tâche… ex : appeler Paul demain, urgent" aria-label="Nouvelle tâche" enterkeyhint="done" />
         <button type="submit" class="btn primary">Ajouter</button>
       </form>
+      <nav id="catFilter" class="cat-filter" aria-label="Filtrer par catégorie" hidden></nav>
       <section id="view" class="view" aria-live="polite"></section>
     </main>
 
@@ -117,6 +118,7 @@
           <label class="toggle t-i"><input type="checkbox" name="important" /><span>Important</span></label>
         </div>
         <p id="editorQuad" class="quad-hint"></p>
+        <label class="field"><span>Catégorie</span><select name="category" class="cat-select"></select></label>
         <div class="row2">
           <label class="field"><span>Début</span><input type="date" name="start" /></label>
           <label class="field"><span>Échéance</span><input type="date" name="end" /></label>
@@ -146,6 +148,7 @@
           <button value="cancel" class="icon-btn" aria-label="Fermer">✕</button>
         </header>
         <div class="menu-list">
+          <button type="button" id="profileBtn" class="menu-item">👤 Profil et catégories <small id="profileLabel" class="muted"></small></button>
           <button type="button" id="exportBtn" class="menu-item">⬇︎ Exporter une sauvegarde (JSON)</button>
           <label class="menu-item">⬆︎ Importer une sauvegarde<input type="file" id="importInput" accept="application/json,.json" hidden /></label>
           <button type="button" id="clearDoneBtn" class="menu-item">✓ Effacer les tâches terminées</button>
@@ -196,6 +199,46 @@
         </footer>
       </form>
     </dialog>
+
+    <!-- Profil et catégories -->
+    <dialog id="profileDlg" class="sheet">
+      <form method="dialog">
+        <header>
+          <h2>Profil et catégories</h2>
+          <button value="close" class="icon-btn" aria-label="Fermer">✕</button>
+        </header>
+        <label class="field"><span>Profil</span><select id="profileSelect"></select></label>
+        <label class="field"><span>Nom du profil</span><input id="profileName" maxlength="40" /></label>
+        <div class="field">
+          <span>Catégories <small class="muted">— touche la pastille pour changer de couleur</small></span>
+          <ul id="catList" class="cat-list"></ul>
+          <button type="button" id="catAdd" class="link">+ Ajouter une catégorie</button>
+        </div>
+        <div class="profile-actions">
+          <button type="button" id="profileReset" class="btn ghost small">Rétablir les catégories d'origine</button>
+          <button type="button" id="profileDelete" class="btn danger small">Supprimer ce profil</button>
+        </div>
+        <div class="new-profile">
+          <input id="newProfileName" maxlength="40" placeholder="Nom d'un nouveau profil" aria-label="Nom d'un nouveau profil" />
+          <button type="button" id="newProfileBtn" class="btn ghost small">+ Créer un profil</button>
+        </div>
+        <footer>
+          <span></span>
+          <button value="close" class="btn primary">Terminé</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <!-- Premier lancement : choix du profil -->
+    <section id="welcome" class="welcome" hidden>
+      <div class="welcome-card">
+        <img src="icons/icon.svg" width="64" height="64" alt="" />
+        <h1>Bienvenue sur Proello</h1>
+        <p class="lead">Quel genre d'utilisateur es-tu ?</p>
+        <p class="muted small">Ton profil donne des catégories adaptées à tes tâches. Tu pourras les renommer, en ajouter ou en retirer à tout moment.</p>
+        <div id="welcomeProfiles" class="profile-grid"></div>
+      </div>
+    </section>
 
     <div id="toast" class="toast" role="status" hidden></div>
 

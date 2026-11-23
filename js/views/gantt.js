@@ -3,6 +3,7 @@
 import { quadrantOf, sortTasks } from '../tasks.js';
 import { todayISO, addDays, diffDays, fromISO, fmtShort } from '../dates.js';
 import { esc, lsGet, lsSet } from '../util.js';
+import { catDot, categoryOf } from '../profile-ui.js';
 
 const SPANS = [
   { days: 7, label: 'Semaine', step: 7 },
@@ -61,7 +62,7 @@ export function renderGantt(root, tasks, ctx) {
            </div>`
         : `<span class="g-out ${e < 0 ? 'left' : 'right'}">${e < 0 ? '‹ ' + fmtShort(t.end) : fmtShort(t.start) + ' ›'}</span>`;
       return `<div class="g-row" data-id="${t.id}">
-        <button class="g-name q-${q} ${t.done ? 'is-done' : ''}" data-edit="${t.id}">${esc(t.title)}</button>
+        <button class="g-name q-${q} ${t.done ? 'is-done' : ''}" data-edit="${t.id}">${catDot(t)}${esc(t.title)}</button>
         <div class="g-track">${bar}</div>
       </div>`;
     })

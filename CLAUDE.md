@@ -19,6 +19,9 @@ L'utilisateur écrit en français : répondre en français, et garder l'interfac
 - `js/when.js` : dates, périodes (« entre A et B », « du A au B »), échéances (« pour vendredi »), durées.
 - `js/summarize.js` : titre court (4 mots maximum).
 - `js/themes.js` : thème commun entre tâches d'une même dictée (lexique de thèmes + tâches de suivi « bilan », « rapport »…).
+- `js/profiles.js` : les 8 profils prédéfinis et leurs catégories ; profils modifiés ou créés par l'utilisateur.
+- `js/categorize.js` : catégorie devinée d'après les mots de la tâche (mots-clés par catégorie + nom de la catégorie).
+- `js/profile-ui.js` : écran d'accueil, fenêtre « Profil et catégories », filtre et pastilles de catégorie.
 - `js/report.js` : formulaire « Signaler une erreur » → fiche GitHub pré-remplie dans le dépôt privé.
 - `tests/` : `parser.test.mjs`, `periods.test.mjs`, et `reports.test.mjs` (alimenté par `tests/reports.json`).
 

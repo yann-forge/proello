@@ -3,12 +3,13 @@
 import { QUADS, quadrantOf, sortTasks } from '../tasks.js';
 import { esc } from '../util.js';
 import { dateChip, detailMark } from './list.js';
+import { catChip } from '../profile-ui.js';
 
 let suppressClick = false;
 
 const card = (t) => `<li class="mx-card" data-id="${t.id}">
   <button class="check" data-act="done" aria-label="Marquer comme terminée"></button>
-  <button class="mx-title" data-act="edit">${esc(t.title)}${t.end || t.notes ? `<span class="mx-meta">${detailMark(t)}${dateChip(t)}</span>` : ''}</button>
+  <button class="mx-title" data-act="edit">${esc(t.title)}${t.end || t.notes || t.category ? `<span class="mx-meta">${catChip(t)}${detailMark(t)}${dateChip(t)}</span>` : ''}</button>
   <span class="grip" aria-label="Déplacer" title="Glisser vers un autre cadran"></span>
 </li>`;
 

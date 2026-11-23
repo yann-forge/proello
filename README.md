@@ -11,6 +11,7 @@ Une to-do list qu'on remplit **à la voix** et qu'on organise selon l'**urgence*
   Les mots « urgent », « important » et les dates sont reconnus automatiquement, y compris les périodes : « entre jeudi et vendredi », « du 5 au 7 décembre », « d'ici vendredi », « pendant 3 jours », « la semaine prochaine »… Une phrase de précision (« À faire avant jeudi. ») est rattachée à la tâche précédente.
 - ✏️ **Vérification du texte** : après la dictée, le texte reste modifiable (corriger un mot, continuer à dicter) avant de créer les tâches.
 - ⚑ **Signaler une erreur** : depuis une tâche, la fenêtre de validation ou le menu. Le rapport (texte dicté, ce que l'app a compris, ce qui était attendu) part dans un dépôt GitHub privé et devient un test automatique.
+- 🏷️ **Profils et catégories** : au premier lancement, on choisit son profil (artiste, entrepreneur, salarié, association, étudiant, parent, sportif, vie personnelle). Chaque tâche reçoit une catégorie devinée d'après la dictée, modifiable. Catégories et profils sont personnalisables.
 - ✅ **Trois vues** :
   1. **Liste** : toutes les tâches triées par priorité, avec filtres.
   2. **Planning** : un Gantt où l'on déplace et étire les tâches au doigt ou à la souris.
