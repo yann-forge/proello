@@ -13,6 +13,12 @@ export function dateChip(t) {
   return `<span class="date-chip ${late ? 'late' : ''}">${late ? 'En retard · ' : ''}${range}${esc(relLabel(t.end))}</span>`;
 }
 
+/** Petit symbole indiquant qu'un détail (texte dicté, notes) est disponible en ouvrant la tâche. */
+export const detailMark = (t) =>
+  t.notes && t.notes.trim()
+    ? `<span class="detail-mark" title="Détail disponible" aria-label="Détail disponible"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9" /></svg></span>`
+    : '';
+
 function item(t) {
   const q = quadrantOf(t);
   return `<li class="task q-${q} ${t.done ? 'is-done' : ''}" data-id="${t.id}">
@@ -20,6 +26,7 @@ function item(t) {
     <div class="task-body">
       <button class="task-title" data-act="edit">${esc(t.title)}</button>
       <div class="task-meta">
+        ${detailMark(t)}
         ${dateChip(t)}
         <button class="pill pill-u ${t.urgent ? 'on' : ''}" data-act="urgent" aria-pressed="${t.urgent}">Urgent</button>
         <button class="pill pill-i ${t.important ? 'on' : ''}" data-act="important" aria-pressed="${t.important}">Important</button>

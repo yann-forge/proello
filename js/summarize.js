@@ -1,0 +1,66 @@
+// Résume une phrase de tâche en un titre court (5 mots maximum), sans IA, directement sur l'appareil.
+// Étapes, de la plus douce à la plus forte (on s'arrête dès que le titre est assez court) :
+//   1. couper à la première explication (« parce que », « pour que », « qui », virgule…)
+//   2. enlever les mots vides (articles, possessifs, pronoms, « vraiment », « bien »…)
+//   3. couper avant une préposition (« pour », « avec », « de »…) en gardant le plus de mots possible
+//   4. tronquer à 5 mots en retirant les petits mots de liaison
+
+export const MAX_WORDS = 5;
+
+const B = '(?<![\\p{L}\'’])';
+const E = '(?![\\p{L}])';
+const CLAUSE = new RegExp(
+  `\\s*(?:[,:(]|${B}(?:parce que|parce qu['’]|car|pour que|pour qu['’]|afin de|afin d['’]|afin que|vu que|puisque|sinon|histoire de|comme ça|qui|où|lorsque|lorsqu['’]|quand|si jamais|sachant que|étant donné que)${E})`,
+  'iu'
+);
+
+const ELISION = /^(?:l|d|j|qu|m|t|s|n|c)['’](?=\p{L})/iu;
+const EMPTY = new Set(
+  (
+    'le la les un une des mon ma mes ton ta tes son sa ses notre nos votre vos leur leurs ce cet cette ces ' +
+    'je tu il elle on nous vous ils elles me te se ' +
+    'bien très vraiment aussi alors donc euh genre juste voilà enfin peut-être quelques tout toute tous toutes'
+  ).split(' ')
+);
+const PREPS = new Set('à au aux de du des pour avec sur dans en par chez sans vers entre sous avant après'.split(' '));
+const LIGHT = new Set('à au aux de du des et ou'.split(' '));
+
+const lc = (w) => w.toLocaleLowerCase('fr-FR').replace(/[.,;:!?…]+$/u, '');
+const words = (s) => s.split(/\s+/).filter(Boolean);
+const cap = (s) => {
+  s = s.replace(/[\s,;:.\-–]+$/u, '').trim();
+  return s ? s[0].toLocaleUpperCase('fr-FR') + s.slice(1) : '';
+};
+const trimTail = (list) => {
+  const out = [...list];
+  while (out.length > 1 && (PREPS.has(lc(out[out.length - 1])) || EMPTY.has(lc(out[out.length - 1])) || LIGHT.has(lc(out[out.length - 1])))) out.pop();
+  return out;
+};
+
+export function summarize(text) {
+  let s = String(text || '').replace(/\s+/g, ' ').trim();
+  if (words(s).length <= MAX_WORDS) return cap(s);
+
+  // 1. couper à la première explication
+  const m = s.match(CLAUSE);
+  if (m && m.index > 0) {
+    const head = s.slice(0, m.index).trim();
+    if (words(head).length >= 2) s = head;
+  }
+  if (words(s).length <= MAX_WORDS) return cap(s);
+
+  // 2. enlever les mots vides
+  let list = words(s)
+    .map((w) => w.replace(ELISION, ''))
+    .filter((w) => w && !EMPTY.has(lc(w)));
+  if (list.length <= MAX_WORDS) return cap(list.join(' '));
+
+  // 3. couper avant une préposition, le plus loin possible
+  for (let i = MAX_WORDS; i >= 2; i--) {
+    if (PREPS.has(lc(list[i]))) return cap(trimTail(list.slice(0, i)).join(' '));
+  }
+
+  // 4. retirer les petits mots de liaison et tronquer
+  list = list.filter((w, i) => i === 0 || !LIGHT.has(lc(w)));
+  return cap(trimTail(list.slice(0, MAX_WORDS)).join(' '));
+}

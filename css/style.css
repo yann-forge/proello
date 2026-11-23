@@ -282,7 +282,13 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 120px; }
 @media (pointer: fine) { .mx-card { cursor: grab; } }
 .mx-card .check { width: 22px; height: 22px; margin: 0; }
 .mx-title { flex: 1; min-width: 0; text-align: left; font-weight: 700; font-size: 0.92rem; line-height: 1.3; overflow-wrap: anywhere; }
-.mx-title .date-chip { height: 22px; margin-top: 4px; font-size: 0.72rem; }
+.mx-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 4px; }
+.mx-title .date-chip { height: 22px; font-size: 0.72rem; }
+.detail-mark { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 999px; background: var(--sand-soft); color: var(--sand-ink); }
+.detail-mark svg { width: 15px; height: 15px; stroke-width: 2.4; }
+.mx-meta .detail-mark { width: 22px; height: 22px; }
+.rv-detail { margin: 6px 2px 0; font-size: 0.82rem; line-height: 1.4; color: var(--muted); }
+.rv-detail span { font-weight: 800; }
 .grip {
   flex-shrink: 0; width: 26px; height: 32px; border-radius: 8px; cursor: grab; touch-action: none;
   background: radial-gradient(circle, var(--sand-strong) 1.6px, transparent 2px) 0 0 / 8px 8px;

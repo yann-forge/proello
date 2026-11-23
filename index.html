@@ -100,7 +100,7 @@
           <h2>Modifier la tâche</h2>
           <button value="cancel" class="icon-btn" formnovalidate aria-label="Fermer">✕</button>
         </header>
-        <label class="field"><span>Intitulé</span><textarea name="title" rows="2" required></textarea></label>
+        <label class="field"><span>Titre</span><textarea name="title" rows="1" required></textarea></label>
         <div class="toggles">
           <label class="toggle t-u"><input type="checkbox" name="urgent" /><span>Urgent</span></label>
           <label class="toggle t-i"><input type="checkbox" name="important" /><span>Important</span></label>
@@ -110,7 +110,7 @@
           <label class="field"><span>Début</span><input type="date" name="start" /></label>
           <label class="field"><span>Échéance</span><input type="date" name="end" /></label>
         </div>
-        <label class="field"><span>Notes</span><textarea name="notes" rows="3" placeholder="Détails, liens, personnes…"></textarea></label>
+        <label class="field"><span>Détail</span><textarea name="notes" rows="4" placeholder="Ce que tu as dicté, des liens, des personnes…"></textarea></label>
         <label class="check-row"><input type="checkbox" name="done" /> Terminée</label>
         <footer>
           <button type="button" id="editorDelete" class="btn danger">Supprimer</button>
@@ -130,6 +130,7 @@
           <button type="button" id="exportBtn" class="menu-item">⬇︎ Exporter une sauvegarde (JSON)</button>
           <label class="menu-item">⬆︎ Importer une sauvegarde<input type="file" id="importInput" accept="application/json,.json" hidden /></label>
           <button type="button" id="clearDoneBtn" class="menu-item">✓ Effacer les tâches terminées</button>
+          <button type="button" id="shortenBtn" class="menu-item">✂︎ Raccourcir les titres trop longs</button>
         </div>
         <div class="install-help">
           <h3>Installer l'application</h3>

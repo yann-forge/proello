@@ -2,6 +2,7 @@
 
 import { store } from './store.js';
 import { parseDictation } from './parser.js';
+import { summarize, MAX_WORDS } from './summarize.js';
 import { startDictation, voiceSupported, VOICE_ERRORS } from './voice.js';
 import { QUADS, quadrantOf } from './tasks.js';
 import { relLabel, todayISO } from './dates.js';
@@ -10,7 +11,7 @@ import { renderList } from './views/list.js';
 import { renderGantt } from './views/gantt.js';
 import { renderMatrix } from './views/matrix.js';
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';
 
 const VIEWS = { list: renderList, gantt: renderGantt, matrix: renderMatrix };
 let current = VIEWS[lsGet('proello.view', 'list')] ? lsGet('proello.view', 'list') : 'list';
@@ -154,8 +155,10 @@ function reviewRow(t) {
   const li = document.createElement('li');
   li.dataset.start = t.start || '';
   li.dataset.end = t.end || '';
+  li.dataset.notes = t.notes || '';
   li.innerHTML = `
-    <input class="rv-title" value="${esc(t.title)}" aria-label="Intitulé" />
+    <input class="rv-title" value="${esc(t.title)}" aria-label="Titre court" maxlength="80" />
+    ${t.notes ? `<p class="rv-detail"><span>Détail :</span> ${esc(t.notes)}</p>` : ''}
     <div class="rv-meta">
       <button type="button" class="pill pill-u ${t.urgent ? 'on' : ''}" data-flag="urgent" aria-pressed="${!!t.urgent}">Urgent</button>
       <button type="button" class="pill pill-i ${t.important ? 'on' : ''}" data-flag="important" aria-pressed="${!!t.important}">Important</button>
@@ -208,6 +211,7 @@ $('#review').addEventListener('close', () => {
     important: li.querySelector('[data-flag=important]').classList.contains('on'),
     start: li.dataset.start || null,
     end: li.dataset.end || null,
+    notes: li.dataset.notes || '',
   }));
   const created = store.add(items);
   if (created.length) toast(`${plural(created.length, 'tâche')} ajoutée${created.length > 1 ? 's' : ''}`);
@@ -281,6 +285,18 @@ function clearDone() {
 $('#clearDoneBtn').addEventListener('click', () => {
   $('#menu').close();
   clearDone();
+});
+
+$('#shortenBtn').addEventListener('click', () => {
+  $('#menu').close();
+  const before = store.all();
+  const long = before.filter((t) => t.title.split(/\s+/).length > MAX_WORDS);
+  if (!long.length) return toast('Tous les titres font déjà 5 mots ou moins.');
+  for (const t of long) {
+    const notes = t.notes ? `${t.title}\n\n${t.notes}` : t.title;
+    store.update(t.id, { title: summarize(t.title), notes });
+  }
+  toast(`${plural(long.length, 'titre')} raccourci${long.length > 1 ? 's' : ''}`, { label: 'Annuler', run: () => store.replaceAll(before) });
 });
 
 $('#exportBtn').addEventListener('click', () => {
