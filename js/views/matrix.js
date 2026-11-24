@@ -3,13 +3,30 @@
 import { QUADS, quadrantOf, sortTasks } from '../tasks.js';
 import { esc } from '../util.js';
 import { dateChip, detailMark } from './list.js';
-import { catChip } from '../profile-ui.js';
+import { catChip, catDot } from '../profile-ui.js';
+import { relLabel, todayISO } from '../dates.js';
 
 let suppressClick = false;
 
+/** Date courte pour les petites cartes du téléphone : « Auj. », « Dem. », « Jeu. », « 12 déc. » */
+function shortDate(t) {
+  if (!t.end) return '';
+  const late = !t.done && t.end < todayISO();
+  const label = relLabel(t.end)
+    .replace("Aujourd'hui", 'Auj.')
+    .replace('Demain', 'Dem.')
+    .replace('Hier', 'Hier')
+    .replace(/^(Lundi|Mardi|Mercredi|Jeudi|Vendredi|Samedi|Dimanche)$/, (w) => w.slice(0, 3) + '.');
+  return `<span class="mx-date ${late ? 'late' : ''}">${late ? '⚠ ' : ''}${label}</span>`;
+}
+
 const card = (t) => `<li class="mx-card" data-id="${t.id}">
   <button class="check" data-act="done" aria-label="Marquer comme terminée"></button>
-  <button class="mx-title" data-act="edit">${esc(t.title)}${t.end || t.notes || t.category ? `<span class="mx-meta">${catChip(t)}${detailMark(t)}${dateChip(t)}</span>` : ''}</button>
+  <button class="mx-title" data-act="edit"><span class="mx-text">${esc(t.title)}</span>${
+    t.end || t.notes || t.category
+      ? `<span class="mx-meta">${catChip(t)}${detailMark(t)}${dateChip(t)}</span><span class="mx-mini">${catDot(t)}${shortDate(t)}</span>`
+      : ''
+  }</button>
   <span class="grip" aria-label="Déplacer" title="Glisser vers un autre cadran"></span>
 </li>`;
 
@@ -29,6 +46,7 @@ export function renderMatrix(root, tasks, ctx) {
       <div class="ax ax-side"><span>Pas important</span></div>${quad('delegate')}${quad('later')}
     </div>
     <p class="hint">Glisse une tâche vers un autre cadran pour changer sa priorité.</p>`;
+  fitToScreen(root);
 
   root.onclick = (e) => {
     if (suppressClick) return;
@@ -93,4 +111,18 @@ export function renderMatrix(root, tasks, ctx) {
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onUp);
   };
+}
+
+/** Sur téléphone : la matrice occupe exactement l'espace libre au-dessus de la barre d'onglets. */
+function fitToScreen(root) {
+  const m = root.querySelector('.matrix');
+  if (!m) return;
+  if (window.innerWidth > 760) {
+    m.style.height = '';
+    return;
+  }
+  const nav = document.querySelector('.tabs');
+  const bottom = nav ? nav.getBoundingClientRect().top - 8 : window.innerHeight - 8;
+  const top = m.getBoundingClientRect().top + window.scrollY;
+  m.style.height = Math.max(320, bottom - top) + 'px';
 }

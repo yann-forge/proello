@@ -566,3 +566,34 @@ body.welcoming .fab { display: none; }
 .trash-purge { width: auto; min-width: 36px; padding: 0 8px; font-size: 0.85rem; color: var(--muted); }
 .trash-purge.confirm, #trashEmpty.confirm { background: var(--danger); color: #fff; }
 .trash-none { padding: 16px; text-align: center; background: none !important; }
+
+/* ---------- Matrice compacte sur téléphone : les 4 cadrans dans un seul écran ---------- */
+
+.mx-text { display: block; }
+.mx-mini { display: none; }
+.mx-date { font-size: 0.68rem; font-weight: 800; color: var(--yellow-ink); white-space: nowrap; }
+.mx-date.late { color: #b23c17; }
+
+@media (max-width: 760px) {
+  body[data-view='matrix'] main { padding-bottom: 0; }
+  body[data-view='matrix'] .hint { display: none; }
+  .matrix { grid-template-rows: auto minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
+  .ax { font-size: 0.6rem; }
+  .quad { display: flex; flex-direction: column; min-height: 0; overflow: hidden; padding: 6px 5px; border-radius: 12px; }
+  .quad header { margin-bottom: 4px; align-items: center; }
+  .quad h3 { font-size: 0.8rem; line-height: 1.15; }
+  .quad header p { display: none; }
+  .count { min-width: 20px; height: 20px; font-size: 0.7rem; padding: 0 5px; }
+  .mx-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; gap: 4px; padding-bottom: 2px; align-content: start; }
+  .mx-empty { margin: 6px 2px; font-size: 0.7rem; }
+  .mx-card { padding: 5px 0 5px 5px; gap: 4px; border-radius: 9px; }
+  .mx-card .check { width: 16px; height: 16px; border-width: 1.5px; }
+  .mx-text {
+    font-size: 0.76rem; line-height: 1.2;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere;
+  }
+  .mx-meta { display: none; }
+  .mx-mini { display: flex; align-items: center; gap: 3px; margin-top: 2px; }
+  .mx-mini .cat-dot { width: 8px; height: 8px; margin-right: 1px; }
+  .grip { width: 14px; height: 28px; padding: 4px 0; background-size: 6px 7px; background-position: 1px 5px; }
+}
