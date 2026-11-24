@@ -12,6 +12,10 @@ import { applyThemes } from './themes.js';
 const LETTER = "\\p{L}'’";
 const word = (body, flags = 'giu') => new RegExp(`(?<![${LETTER}])(?:${body})(?![\\p{L}])`, flags);
 
+// début d'une expression de date (pour reconnaître « et toujours demain », « encore pour mercredi »…)
+const DATE_AHEAD =
+  "(?:(?:pour|le|la|ce|cette|d['’]ici|avant|dans)\\s+)?(?:demain|aujourd['’]hui|après[-\\s]demain|surlendemain|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|soir|matin|week-?end|semaine|mois|\\d)";
+
 const SEPARATORS = word(
   [
     'et puis', 'et ensuite', 'et aussi', 'et après ça', 'puis', 'ensuite', 'après ça', 'après quoi',
@@ -22,7 +26,10 @@ const SEPARATORS = word(
     'dans un (?:premier|second|deuxième|troisième|quatrième|dernier|autre) temps',
     'en (?:premier|second|deuxième|troisième|dernier) lieu',
     'par la suite', 'après cela', 'suite à (?:cela|ça)', "une fois (?:que (?:c['’]est|ce sera) |cela |ça )?fait",
-    'en parallèle', 'parallèlement', 'et toujours', 'et encore', 'et également', "d['’]autre part", 'par ailleurs',
+    'en parallèle', 'parallèlement',
+    // « (et) toujours / encore / également » + date annonce une autre tâche (« et toujours demain… »),
+    // mais pas sans date (« envoyer des mails et toujours préparer… » reste une seule tâche)
+    `(?:et\\s+)?(?:toujours|encore|également)(?=\\s+${DATE_AHEAD})`, "d['’]autre part", 'par ailleurs',
     '(?:première|deuxième|seconde|troisième|quatrième|cinquième|sixième|dernière) tâche',
   ].join('|')
 );
@@ -39,7 +46,7 @@ const IMPORTANT = word(
 const LEADING_FILLERS = new RegExp(
   '^(?:' +
     [
-      'alors', 'bon', 'donc', 'ok', 'okay', 'euh', 'et', 'aussi', 'ah', 'oui', 'toujours', 'encore', 'également',
+      'alors', 'bon', 'donc', 'ok', 'okay', 'euh', 'et', 'aussi', 'ah', 'oui',
       'il (?:faut|faudrait)(?: absolument| vraiment| aussi)?(?: que (?:je |j[\'’]))?',
       'je (?:dois|devrais|voudrais|veux)(?: absolument| vraiment| aussi)?',
       // formules d'intention : « besoin de », « il me faut », « il va falloir »…

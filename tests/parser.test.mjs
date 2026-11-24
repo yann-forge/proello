@@ -113,3 +113,18 @@ test('formules d’intention retirées et but (« pour + verbe ») hors du titre
   assert.deepEqual(p('acheter un cadeau pour Olivier et un pour Marie').map((t) => t.title), ['Acheter cadeau Olivier Marie']);
   assert.deepEqual(p('préparer la présentation pour le client Dupont').map((t) => t.title), ['Préparer présentation client Dupont']);
 });
+
+test('« et toujours » ne sépare que devant une date (retour sur le rapport #4)', () => {
+  // sans date : une seule idée
+  assert.deepEqual(p('envoyer des mails et toujours préparer un pot-au-feu').map((t) => t.title), ['Envoyer mails toujours préparer']);
+  assert.equal(p('relire le contrat et encore vérifier les annexes').length, 1);
+  // avec une date : nouvelle tâche, chacune à sa date
+  assert.deepEqual(
+    p('appeler la banque demain et toujours mercredi passer à la poste et encore pour vendredi rendre le dossier').map((t) => [t.title, t.end]),
+    [
+      ['Appeler banque', '2026-11-24'],
+      ['Passer à poste', '2026-11-25'],
+      ['Rendre dossier', '2026-11-27'],
+    ]
+  );
+});
