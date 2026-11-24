@@ -3,7 +3,7 @@
 // - les tâches qui ne se chevauchent pas (titre compris) partagent la même ligne, côte à côte ;
 // - les barres se déplacent / s'étirent au doigt ou à la souris.
 
-import { quadrantOf, sortTasks } from '../tasks.js';
+import { QUADS, QUAD_ORDER, quadrantOf, sortTasks } from '../tasks.js';
 import { todayISO, addDays, diffDays, fromISO, fmtShort } from '../dates.js';
 import { esc, lsGet, lsSet } from '../util.js';
 
@@ -137,6 +137,9 @@ export function renderGantt(root, tasks, ctx) {
       </div>
       <span class="range-label">${fmtShort(state.start)} – ${fmtShort(last)}</span>
     </div>
+    <ul class="g-legend" aria-label="Légende des couleurs">
+      ${QUAD_ORDER.map((k) => `<li class="q-${k}"><i></i>${QUADS[k].label}</li>`).join('')}
+    </ul>
     <div class="gantt" style="--day-w:${dayW}px;--days:${span}">
       <div class="g-inner">
         <div class="g-head">${head}</div>
