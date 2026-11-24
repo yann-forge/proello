@@ -15,6 +15,8 @@ const SPANS = [
 const WD = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 const fmtMonth = new Intl.DateTimeFormat('fr-FR', { month: 'short' });
 const state = { start: null, span: lsGet('proello.gantt.span', 14) };
+// libellés de la légende propres au planning (même ordre que la matrice : 2 × 2)
+const LEGEND = { later: 'Si tu as le temps' };
 
 const LANE_H = 40; // hauteur d'une ligne
 const BAR_H = 30;
@@ -138,7 +140,7 @@ export function renderGantt(root, tasks, ctx) {
       <span class="range-label">${fmtShort(state.start)} – ${fmtShort(last)}</span>
     </div>
     <ul class="g-legend" aria-label="Légende des couleurs">
-      ${QUAD_ORDER.map((k) => `<li class="q-${k}"><i></i>${QUADS[k].label}</li>`).join('')}
+      ${QUAD_ORDER.map((k) => `<li class="q-${k}"><i></i>${LEGEND[k] || QUADS[k].label}</li>`).join('')}
     </ul>
     <div class="gantt" style="--day-w:${dayW}px;--days:${span}">
       <div class="g-inner">
