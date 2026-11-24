@@ -21,15 +21,15 @@ const SEPARATORS = word(
     'et puis', 'et ensuite', 'et aussi', 'et après ça', 'puis', 'ensuite', 'après ça', 'après quoi',
     'tâche suivante', 'nouvelle tâche', 'autre tâche', 'prochaine tâche', 'autre chose', 'point suivant',
     'premièrement', 'deuxièmement', 'troisièmement', 'quatrièmement', 'cinquièmement', 'sixièmement',
-    "d['’]abord", 'pour finir', 'pour commencer', 'enfin',
+    // (« d'abord », « pour finir », « enfin »… : voir CONTEXT_SEPARATORS plus bas)
     // enchaînements (rapport #3 : « dans un second temps »)
     'dans un (?:premier|second|deuxième|troisième|quatrième|dernier|autre) temps',
     'en (?:premier|second|deuxième|troisième|dernier) lieu',
     'par la suite', 'après cela', 'suite à (?:cela|ça)', "une fois (?:que (?:c['’]est|ce sera) |cela |ça )?fait",
-    'en parallèle', 'parallèlement',
+
     // « (et) toujours / encore / également » + date annonce une autre tâche (« et toujours demain… »),
     // mais pas sans date (« envoyer des mails et toujours préparer… » reste une seule tâche)
-    `(?:et\\s+)?(?:toujours|encore|également)(?=\\s+${DATE_AHEAD})`, "d['’]autre part", 'par ailleurs',
+    `(?:et\\s+)?(?:toujours|encore|également)(?=\\s+${DATE_AHEAD})`, 
     '(?:première|deuxième|seconde|troisième|quatrième|cinquième|sixième|dernière) tâche',
   ].join('|')
 );
@@ -43,10 +43,19 @@ const IMPORTANT = word(
   "(?:c['’]est )?(?:très |super |vraiment |assez )?(?:importante?s?|prioritaires?|en priorité|essentielle?s?|cruciale?s?|primordiale?s?|capitale?s?)"
 );
 
+// Mots de liaison qui sont aussi des mots courants : ils ne séparent les tâches qu'en début de phrase,
+// devant une virgule ou devant un verbe (« pour finir, appeler Paul », « d'abord appeler Paul »),
+// pas au milieu d'une idée (« pour finir le montage », « appeler d'abord Paul », « travailler en parallèle sur… »).
+const CONTEXT_WORDS = "d['’]abord|pour finir|pour commencer|enfin|en parallèle|parallèlement|d['’]autre part|par ailleurs";
+const CONTEXT_SEPARATORS = new RegExp(
+  `(?:(?<=^|\\|)\\s*(?:${CONTEXT_WORDS})(?![\\p{L}])\\s*,?|(?<![\\p{L}'’])(?:${CONTEXT_WORDS})(?=\\s*,|\\s+\\p{L}+(?:er|ir|re|oir)(?![\\p{L}])))`,
+  'giu'
+);
+
 const LEADING_FILLERS = new RegExp(
   '^(?:' +
     [
-      'alors', 'bon', 'donc', 'ok', 'okay', 'euh', 'et', 'aussi', 'ah', 'oui',
+      'alors', 'bon', 'bref', 'donc', 'ok', 'okay', 'euh', 'et', 'aussi', 'ah', 'oui', 'enfin',
       'il (?:faut|faudrait)(?: absolument| vraiment| aussi)?(?: que (?:je |j[\'’]))?',
       'je (?:dois|devrais|voudrais|veux)(?: absolument| vraiment| aussi)?',
       // formules d'intention : « besoin de », « il me faut », « il va falloir »…
@@ -103,6 +112,8 @@ function clean(s) {
   s = s.replace(/\s+/g, ' ').trim();
   // mots composés que la reconnaissance vocale écrit sans trait d'union (« vous » ne doit pas être retiré)
   s = s.replace(/(?<![\p{L}])rendez[\s-]vous(?![\p{L}])/giu, 'rendez-vous');
+  // « appeler d'abord Paul » : « d'abord » au milieu d'une idée n'apporte rien au titre
+  s = s.replace(/(?<![\p{L}])d['’]abord(?![\p{L}])/giu, ' ').replace(/\s+/g, ' ').trim();
   s = s.replace(QUE_JE, (m, verb) => toInfinitive(verb));
   let prev;
   do {
@@ -155,7 +166,7 @@ function parseFragment(raw, now) {
 
   const when = extractWhen(text, now);
   const full = clean(when.text);
-  const base = { raw, urgent, important, start: when.start, end: when.end };
+  const base = { raw, urgent, important, start: when.start, end: when.end, repeats: when.repeats || [] };
 
   if (!/\p{L}{2,}/u.test(full) || ATTRIBUTE_ONLY.test(full)) {
     // pas d'action : seulement des précisions à rattacher à une tâche voisine
@@ -170,6 +181,7 @@ function mergeInto(task, extra) {
   if (extra.start && !task.start) {
     task.start = extra.start;
     task.end = extra.end;
+    task.repeats = extra.repeats;
   }
   task.raw = `${task.raw}. ${extra.raw}`;
   task.merged = true;
@@ -186,7 +198,8 @@ export function parseDictation(input, now = new Date()) {
   const text = input
     .replace(/après[-\s]demain/giu, 'surlendemain') // évite de couper sur « après »
     .replace(/[;!?\n]+|\.(?!\d)|(?<!\d)\./g, ' | ') // un point coupe, sauf dans une date « 26.11 »
-    .replace(SEPARATORS, ' | ');
+    .replace(SEPARATORS, ' | ')
+    .replace(CONTEXT_SEPARATORS, ' | ');
 
   const tasks = [];
   let pending = null; // précisions dites avant la première tâche
@@ -209,13 +222,17 @@ export function parseDictation(input, now = new Date()) {
 
   applyThemes(tasks); // thème commun (« mécénat ») entre tâches d'une même dictée
 
-  return tasks.map((t) => ({
-    title: t.title,
-    // le texte dicté devient le détail dès que le titre a perdu de l'information
-    notes: t.title !== t.full || t.merged ? dictated(t.raw) : '',
-    urgent: t.urgent,
-    important: t.important,
-    start: t.start,
-    end: t.end,
-  }));
+  return tasks.flatMap((t) => {
+    const task = {
+      title: t.title,
+      // le texte dicté devient le détail dès que le titre a perdu de l'information
+      notes: t.title !== t.full || t.merged ? dictated(t.raw) : '',
+      urgent: t.urgent,
+      important: t.important,
+      start: t.start,
+      end: t.end,
+    };
+    // « sport lundi et jeudi » : une tâche par jour
+    return [task, ...(t.repeats || []).map((d) => ({ ...task, start: d, end: d }))];
+  });
 }

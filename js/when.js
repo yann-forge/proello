@@ -220,7 +220,10 @@ function findDates(text, now) {
   return merged;
 }
 
-const TIME_AFTER = /^\s*,?\s*(?:à|vers|avant|dès|pour)?\s*(?:\d{1,2}\s*(?:h|heures?)(?:\s*\d{2})?|midi|minuit)(?![\p{L}\d])/iu;
+// « vendredi 15h », « demain à 10 heures » : horaire, retiré avec la date.
+// « demain 2 heures » (sans « à ») : une durée, qui reste dans le titre.
+const TIME_AFTER =
+  /^\s*,?\s*(?:(?:à|vers|avant|dès|pour)\s*)?(?:\d{1,2}\s*h(?:\s*\d{2})?|midi|minuit)(?![\p{L}\d])|^\s*,?\s*(?:à|vers|avant|dès|pour)\s*\d{1,2}\s*heures?(?:\s*\d{2})?(?![\p{L}\d])/iu;
 const WEEK_QUALIFIER = /^\s*(?:de\s+|d['’])?(cette semaine|la semaine prochaine|la semaine d['’]après)(?![\p{L}])/iu;
 
 /** Le jour `wd` de cette semaine ou de la suivante (semaine du lundi au dimanche). */
@@ -234,8 +237,9 @@ function inWeek(now, week, wd) {
 const RANGE_START = /(?:entre|du|de|depuis|à partir du|à partir de|à partir d['’]|à compter du|à compter de|dès)\s*$/iu;
 // « et la fin de semaine prochaine » : un article peut suivre le mot de liaison (rapport #7)
 const RANGE_MID = /^\s*,?\s*(?:et|au|à|jusqu['’]au|jusqu['’]à|jusqu['’]|-|–|—)(?:\s+(?:le|la|l['’]|ce|cette))?\s*$/iu;
-// « jeudi et vendredi » sans « entre » : une période aussi (rapport #5)
-const AND_MID = /^\s*,?\s*et\s*$/iu;
+// « jeudi et vendredi », « lundi, mercredi et vendredi » : liste de jours (rapport #5)
+// jours consécutifs → une période ; sinon → une tâche par jour
+const LIST_MID = /^\s*(?:,|,?\s*et)(?:\s+(?:le|la|ce))?\s*$/iu;
 // « pour le 2 décembre » = ce jour-là (rapport #3) ; « avant / d'ici / au plus tard » = échéance
 const DEADLINE = /(?:avant|d['’]ici|au plus tard|jusqu['’]au|jusqu['’]à|à rendre|à terminer|à finir|à boucler|à livrer|dernier délai|délai|échéance|deadline|maximum|max)\s*,?\s*$/iu;
 const START = /(?:à partir du|à partir de|à partir d['’]|à compter du|à compter de|dès|commencer|démarrer)\s*$/iu;
@@ -243,7 +247,7 @@ const DURATION = rx(`(?:pendant|durant|sur|en)\\s+(${NUM})\\s+(jours?|semaines?)
 
 /**
  * Extrait la période d'une phrase.
- * @returns {{ text: string, start: string|null, end: string|null }}
+ * @returns {{ text: string, start: string|null, end: string|null, repeats: string[] }}
  */
 export function extractWhen(text, now = new Date()) {
   const dates = findDates(text, now);
@@ -253,11 +257,36 @@ export function extractWhen(text, now = new Date()) {
   let open = false; // une date de début seule, qu'une durée peut prolonger
 
   const [a, b] = dates;
-  if (a) {
+  let repeats = []; // autres jours d'une liste non consécutive (« lundi et jeudi ») → une tâche par jour
+
+  // Liste de jours sans « entre / du » : « jeudi et vendredi », « lundi, mercredi et vendredi »
+  const list = a ? [a] : [];
+  while (dates[list.length] && LIST_MID.test(text.slice(list[list.length - 1].endIndex, dates[list.length].index))) {
+    list.push(dates[list.length]);
+  }
+  const explicitRange = a && b && RANGE_START.test(text.slice(0, a.index)) && RANGE_MID.test(text.slice(a.endIndex, b.index));
+
+  if (list.length >= 2 && !explicitRange && list.every((d) => !d.period)) {
+    const last = list[list.length - 1];
+    // « … de la semaine prochaine » vaut pour tous les jours de la liste
+    const days = list.map((d) => (d.weekday && last.week && !d.week ? inWeek(now, last.week, d.wd) : d.start));
+    for (let i = 1; i < days.length; i++) {
+      if (list[i].weekday) while (days[i] <= days[i - 1]) days[i] = new Date(days[i].getFullYear(), days[i].getMonth(), days[i].getDate() + 7);
+    }
+    const consecutive = days.every((d, i) => i === 0 || Math.round((d - days[i - 1]) / 86400000) === 1);
+    if (consecutive) {
+      start = days[0];
+      end = days[days.length - 1];
+    } else {
+      start = end = days[0];
+      repeats = days.slice(1);
+    }
+    cuts.push([a.index, last.endIndex]);
+  } else if (a) {
     const before = text.slice(0, a.index);
     const between = b ? text.slice(a.endIndex, b.index) : '';
     const rs = before.match(RANGE_START);
-    if (b && ((rs && RANGE_MID.test(between)) || AND_MID.test(between))) {
+    if (b && rs && RANGE_MID.test(between)) {
       // entre A et B, du A au B, A et B… (« de lundi à mercredi » : le mercredi qui suit ce lundi)
       // « jeudi et vendredi de la semaine prochaine » : le qualificatif vaut pour les deux jours
       const first = a.weekday && b.week ? inWeek(now, b.week, a.wd) : a.start;
@@ -305,5 +334,5 @@ export function extractWhen(text, now = new Date()) {
 
   let out = text;
   for (const [x, y] of cuts.sort((p, q) => q[0] - p[0])) out = out.slice(0, x) + ' ' + out.slice(y);
-  return { text: out, start: start && toISO(start), end: end && toISO(end) };
+  return { text: out, start: start && toISO(start), end: end && toISO(end), repeats: repeats.map(toISO) };
 }

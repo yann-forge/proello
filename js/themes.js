@@ -48,7 +48,11 @@ const FOLLOW_VERBS = new Set(['faire', 'rediger', 'ecrire', 'preparer', 'present
 const ARTICLES = new Set(['le', 'la', 'les', 'un', 'une', 'des', 'du', 'l', 'et', 'mon', 'ma', 'mes', 'son', 'sa', 'ses', 'notre', 'nos'].map(fold));
 const PREPS = new Set(['de', 'du', 'des', 'd', 'a', 'au', 'aux', 'pour', 'avec', 'sur', 'en', 'dans', 'par', 'chez'].map(fold));
 // Compléments qui ne sont pas un sujet (« rapport aux membres », « bilan de l'équipe »)
-const GENERIC = new Set(['membres', 'equipe', 'association', 'asso', 'bureau', 'gens', 'personnes', 'tous', 'tout', 'moi', 'lui', 'eux'].map(fold));
+const GENERIC = new Set(['membre', 'membres', 'equipe', 'association', 'asso', 'bureau', 'gens', 'personne', 'personnes', 'tous', 'tout', 'moi', 'lui', 'eux', 'nous', 'adherents', 'benevoles'].map(fold));
+
+/** Le titre garde-t-il un complément propre (« … à Paul », « … avec Marie ») qu'un thème écraserait ? */
+const hasOwnComplement = (rest) =>
+  rest.map(normWord).filter((w) => w && !PREPS.has(w) && !ARTICLES.has(w) && !GENERIC.has(w)).length > 0;
 
 const words = (s) => String(s || '').split(/\s+/).filter(Boolean);
 const normWord = (w) => fold(w.replace(/^(?:l|d|j|qu|m|t|s|n|c)['’]/i, ''));
@@ -132,7 +136,8 @@ export function applyThemes(tasks) {
   tasks.forEach((t, i) => {
     // règle 2 : tâche de suivi sans sujet → thème de la tâche précédente
     const head = followUpHead(t.title);
-    if (head && i > 0 && !t.theme && !hasOwnTopic(t.full)) {
+    // (pas si la tâche a déjà son complément : « envoyer le rapport à Paul », « faire le point avec Marie »)
+    if (head && i > 0 && !t.theme && !hasOwnTopic(t.full) && !hasOwnComplement(head.rest)) {
       const prev = tasks[i - 1];
       // l'objet de la tâche précédente n'est repris que pour une vraie tournure de suivi
       // (« puis le bilan », « faire / rédiger le compte rendu »), pas « finir le rapport »
