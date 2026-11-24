@@ -249,7 +249,8 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 120px; }
 
 /* ---------- Vue matrice ---------- */
 
-.matrix { display: grid; grid-template-columns: 28px 1fr 1fr; grid-template-rows: auto 1fr 1fr; gap: 12px; }
+.matrix { display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr 1fr; gap: 12px; }
+.quad, .mx-card, .mx-title, .mx-meta { min-width: 0; }
 .ax { font-weight: 800; font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
 .ax-top { text-align: center; }
 .ax-side { display: flex; align-items: center; justify-content: center; }
@@ -454,16 +455,17 @@ dialog.sheet footer .btn.primary { margin-left: auto; }
   .sum span { font-size: 0.7rem; }
   .q-tag { display: none; }
   .range-label { width: 100%; margin-left: 0; order: -1; }
-  .matrix { grid-template-columns: 20px 1fr 1fr; gap: 8px; }
+  .matrix { grid-template-columns: 20px minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
   .ax { font-size: 0.7rem; }
-  .quad { min-height: 160px; padding: 10px 8px; border-radius: 14px; }
+  .quad { min-height: 140px; padding: 8px 6px; border-radius: 14px; }
   .quad h3 { font-size: 0.92rem; }
   .quad header p { font-size: 0.68rem; }
   .count { min-width: 24px; height: 24px; font-size: 0.8rem; }
-  .mx-card { padding: 7px 2px 7px 7px; gap: 6px; }
+  .mx-card { padding: 7px 0 7px 6px; gap: 5px; }
+  .mx-meta .detail-mark { display: none; }
   .mx-title { font-size: 0.82rem; }
-  .mx-card .check { width: 20px; height: 20px; }
-  .grip { width: 22px; }
+  .mx-card .check { width: 18px; height: 18px; }
+  .grip { width: 18px; padding: 4px 1px; background-position: 3px 6px; }
   .recorder { padding: 10px; }
   dialog.sheet { margin-bottom: 0; }
 }
@@ -478,7 +480,7 @@ dialog.sheet footer .btn.primary { margin-left: auto; }
   display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px;
   background: var(--c); color: color-mix(in srgb, var(--c) 28%, #3b352c); font-size: 0.78rem; font-weight: 800; white-space: nowrap;
 }
-.mx-meta .cat-chip { height: 22px; font-size: 0.72rem; padding: 0 8px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.mx-meta .cat-chip { display: block; height: 22px; line-height: 22px; font-size: 0.72rem; padding: 0 8px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cat-dot { display: inline-block; flex-shrink: 0; width: 10px; height: 10px; margin-right: 7px; border-radius: 50%; background: var(--c, var(--sand-strong)); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); vertical-align: 0; }
 
 .cat-filter { display: flex; gap: 6px; overflow-x: auto; margin: -6px 0 14px; padding: 2px 2px 6px; scrollbar-width: none; }

@@ -6,7 +6,6 @@
 import { quadrantOf, sortTasks } from '../tasks.js';
 import { todayISO, addDays, diffDays, fromISO, fmtShort } from '../dates.js';
 import { esc, lsGet, lsSet } from '../util.js';
-import { catDot } from '../profile-ui.js';
 
 const SPANS = [
   { days: 7, label: 'Semaine', step: 7 },
@@ -44,7 +43,7 @@ function layout(tasks, span, dayW) {
     const b = Math.min(e, span - 1);
     const left = a * dayW + 3;
     const width = Math.max(b - a + 1, 1) * dayW - 6;
-    const label = textWidth(t.title, 800) + (t.category ? 16 : 0);
+    const label = textWidth(t.title, 800);
     let mode = 'in';
     let occL = left;
     let occR = left + width;
@@ -113,7 +112,7 @@ export function renderGantt(root, tasks, ctx) {
       ({ t, s, e, left, width, mode, lane }) => `<div class="g-bar q-${quadrantOf(t)} lbl-${mode} ${t.done ? 'is-done' : ''} ${s < 0 ? 'clip-l' : ''} ${
         e > span - 1 ? 'clip-r' : ''
       }" data-id="${t.id}" data-lane="${lane}" style="${barStyle(left, width, lane)}" title="${esc(t.title)}">
-        <i class="g-handle l"></i><span class="g-label">${catDot(t)}${esc(t.title)}</span><i class="g-handle r"></i>
+        <i class="g-handle l"></i><span class="g-label">${esc(t.title)}</span><i class="g-handle r"></i>
       </div>`
     )
     .join('');
