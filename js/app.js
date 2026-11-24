@@ -540,7 +540,27 @@ $('#installBtn').addEventListener('click', async () => {
 window.addEventListener('appinstalled', () => ($('#installBtn').hidden = true));
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  // Mises à jour : vérifiées au lancement et à chaque retour sur l'app (une app installée reste souvent ouverte)
+  const hadController = !!navigator.serviceWorker.controller;
+  window.addEventListener('load', () =>
+    navigator.serviceWorker
+      .register('sw.js', { updateViaCache: 'none' })
+      .then((reg) => {
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') reg.update().catch(() => {});
+        });
+      })
+      .catch(() => {})
+  );
+  // Nouvelle version prête : on recharge, sauf si une fenêtre ou une dictée est en cours
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || reloading) return;
+    const busy = document.querySelector('dialog[open]') || !$('#recorder').hidden;
+    if (busy) return toast('Nouvelle version disponible : ferme et rouvre l’app pour en profiter.');
+    reloading = true;
+    location.reload();
+  });
 }
 
 render();

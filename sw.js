@@ -1,7 +1,7 @@
 // Service worker : l'app fonctionne hors ligne.
 // Stratégie « réseau d'abord » : toujours la dernière version quand on est connecté, le cache sinon.
 
-const CACHE = 'proello-v19';
+const CACHE = 'proello-v20';
 const ASSETS = [
   './',
   'index.html',
@@ -51,8 +51,16 @@ self.addEventListener('fetch', (e) => {
   const isFont = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
   if (!sameOrigin && !isFont) return;
 
+  // « no-cache » : toujours revérifier auprès du serveur (GitHub Pages autorise 10 min de cache navigateur,
+  // ce qui affichait l'ancienne version juste après une mise à jour). Hors ligne, le cache prend le relais.
+  const fresh =
+    req.mode === 'navigate'
+      ? fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' })
+      : sameOrigin
+        ? fetch(req, { cache: 'no-cache' })
+        : fetch(req);
   e.respondWith(
-    fetch(req)
+    fresh
       .then((res) => {
         if (res.ok || res.type === 'opaque') {
           const copy = res.clone();
