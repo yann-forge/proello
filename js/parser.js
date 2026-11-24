@@ -187,6 +187,45 @@ function mergeInto(task, extra) {
   task.merged = true;
 }
 
+/* ---------- phrases sans verbe : on reprend celui de la tâche précédente ---------- */
+
+const looksLikeVerb = (w) => /^\p{Ll}\p{L}*(?:er|ir|re|oir)$/u.test(w);
+
+/** Le mot tel qu'il a été dicté (avant la majuscule ajoutée par le nettoyage). */
+function asDictated(raw, word) {
+  const m = raw.match(new RegExp(`(?<![\\p{L}])${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}])`, 'iu'));
+  return m ? m[0] : word;
+}
+
+/**
+ * « appeler Paul puis Marie », « acheter du pain puis du lait », « écrire à Paul puis à Marie » :
+ * la 2ᵉ tâche n'a pas de verbe, elle reprend celui de la tâche précédente.
+ * Seulement pour un prénom, « du / de la / des », ou « à / chez / avec + prénom » :
+ * « puis la réunion » ne devient pas « Appeler la réunion ».
+ */
+function reuseVerbs(tasks) {
+  for (let i = 1; i < tasks.length; i++) {
+    const t = tasks[i];
+    const prev = tasks[i - 1];
+    const ws = t.full.split(/\s+/);
+    // verbe de la tâche précédente (éventuellement lui-même repris : « du pain puis du lait puis de la farine »)
+    const prevFirst = prev.full.split(/\s+/)[0];
+    const verb = prev.verb || (prevFirst && looksLikeVerb(asDictated(prev.raw, prevFirst)) ? prevFirst.toLocaleLowerCase('fr-FR') : null);
+    if (ws.length > 4 || !verb) continue;
+    const first = asDictated(t.raw, ws[0]);
+    const isName = (w) => !!w && /^\p{Lu}/u.test(w) && !looksLikeVerb(w.toLowerCase());
+    const partitive = /^(?:du|des)$/i.test(first) || (/^de$/i.test(first) && /^(?:la|l['’])/i.test(ws[1] || '')) || /^de\s+l['’]/i.test(t.full);
+    // un prénom seul (« Marie », « Marie Dupont », « à Marie ») : pas « Dupont valide le devis »
+    const nameStart = /^(?:à|chez|avec|pour)$/i.test(first) ? 1 : 0;
+    const named = ws.length > nameStart && ws.slice(nameStart).every((w) => isName(asDictated(t.raw, w)));
+    if (!partitive && !named) continue;
+    t.full = `${verb} ${first} ${ws.slice(1).join(' ')}`.trim();
+    t.full = t.full[0].toLocaleUpperCase('fr-FR') + t.full.slice(1);
+    t.title = summarize(t.full);
+    t.verb = verb;
+  }
+}
+
 function dictated(raw) {
   const s = raw.replace(/surlendemain/giu, 'après-demain').replace(/\s+/g, ' ').trim();
   return s ? s[0].toLocaleUpperCase('fr-FR') + s.slice(1) + (/[.!?…]$/.test(s) ? '' : '.') : '';
@@ -220,6 +259,7 @@ export function parseDictation(input, now = new Date()) {
     tasks.push(r);
   }
 
+  reuseVerbs(tasks); // « appeler Paul puis Marie » → « Appeler Marie »
   applyThemes(tasks); // thème commun (« mécénat ») entre tâches d'une même dictée
 
   return tasks.flatMap((t) => {

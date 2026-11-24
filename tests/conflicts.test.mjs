@@ -20,7 +20,7 @@ test('« pour finir / pour commencer » + complément : un but, pas une nouvelle
 });
 
 test('« d’abord », « en parallèle », « enfin » au milieu d’une idée ne coupent pas', () => {
-  assert.deepEqual(p("appeler d'abord Paul puis Marie"), ['Appeler Paul', 'Marie']);
+  assert.deepEqual(p("appeler d'abord Paul puis Marie"), ['Appeler Paul', 'Appeler Marie']);
   assert.deepEqual(p('travailler en parallèle sur les deux projets').length, 1);
   assert.deepEqual(p('enfin bref ranger le bureau'), ['Ranger bureau']);
 });
@@ -59,4 +59,15 @@ test('mots-clés courts : « poste » n’est pas « post », « livre » n’es
   assert.equal(name('faire un post sur Instagram'), 'Communication & réseaux');
   assert.equal(name('mixer le titre'), 'Réalisation & production');
   assert.equal(name('préparer le live de samedi'), 'Concerts & événements');
+});
+
+test('phrase sans verbe : on reprend le verbe de la tâche précédente', () => {
+  assert.deepEqual(p('appeler Paul puis Marie'), ['Appeler Paul', 'Appeler Marie']);
+  assert.deepEqual(p('acheter du pain puis du lait et ensuite de la farine'), ['Acheter du pain', 'Acheter du lait', 'Acheter farine']);
+  assert.deepEqual(p('écrire à Paul puis à Marie Dupont'), ['Écrire à Paul', 'Écrire à Marie Dupont']);
+  assert.deepEqual(p('appeler Paul puis Marie jeudi'), ['Appeler Paul', 'Appeler Marie [2026-11-26→2026-11-26]']);
+  // pas de reprise : un nom commun, une phrase avec son propre verbe, ou pas de verbe avant
+  assert.deepEqual(p('appeler Paul puis la réunion'), ['Appeler Paul', 'Réunion']);
+  assert.deepEqual(p('préparer le dossier puis Dupont valide'), ['Préparer dossier', 'Dupont valide']);
+  assert.deepEqual(p('réunion lundi puis Marie'), ['Réunion [2026-11-30→2026-11-30]', 'Marie']);
 });

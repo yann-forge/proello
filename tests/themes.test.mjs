@@ -42,7 +42,7 @@ test('pas de thème ajouté quand ce n’est pas une tâche de suivi ou que le s
   assert.deepEqual(titles('Appeler le plombier puis acheter du pain'), ['Appeler plombier', 'Acheter du pain']);
   assert.deepEqual(titles('Préparer le salon du livre puis faire le bilan de la saison'), [
     'Préparer salon du livre',
-    'Faire bilan de saison',
+    'Faire bilan saison',
   ]);
   // « finir le rapport » n'est pas un suivi de la tâche d'avant
   assert.deepEqual(titles("envoyer le colis puis finir le rapport"), ['Envoyer colis', 'Finir rapport']);

@@ -55,7 +55,10 @@ const trimTail = (list) => {
 
 /** Retire articles, possessifs, pronoms et mots de remplissage (« répondre à tous mes mails » → « répondre à mails »). */
 function lean(s) {
-  const list = words(s)
+  const raw = words(s);
+  const list = raw
+    // « de la farine », « de l'eau » : le « de » part avec l'article (« Acheter farine »)
+    .filter((w, i) => !(lc(w) === 'de' && /^(?:la|l['’])/iu.test(raw[i + 1] || '')))
     .map((w) => w.replace(ELISION, ''))
     .filter((w) => w && !EMPTY.has(lc(w)));
   return list.length ? list.join(' ') : s;
