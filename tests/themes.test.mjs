@@ -39,21 +39,21 @@ test("une tâche de suivi reprend l'objet de la tâche précédente", () => {
 });
 
 test('pas de thème ajouté quand ce n’est pas une tâche de suivi ou que le sujet est déjà dit', () => {
-  assert.deepEqual(titles('Appeler le plombier puis acheter du pain'), ['Appeler le plombier', 'Acheter du pain']);
+  assert.deepEqual(titles('Appeler le plombier puis acheter du pain'), ['Appeler plombier', 'Acheter du pain']);
   assert.deepEqual(titles('Préparer le salon du livre puis faire le bilan de la saison'), [
     'Préparer salon du livre',
     'Faire bilan de saison',
   ]);
   // « finir le rapport » n'est pas un suivi de la tâche d'avant
-  assert.deepEqual(titles("envoyer le colis puis finir le rapport"), ['Envoyer le colis', 'Finir le rapport']);
+  assert.deepEqual(titles("envoyer le colis puis finir le rapport"), ['Envoyer colis', 'Finir rapport']);
   // première tâche de la dictée : pas de tâche précédente
-  assert.deepEqual(titles('Faire le bilan'), ['Faire le bilan']);
+  assert.deepEqual(titles('Faire le bilan'), ['Faire bilan']);
 });
 
 test('un thème connu n’est ajouté que s’il manque et qu’il reste de la place', () => {
   // le thème est déjà dans le titre (« mécènes »)
   assert.deepEqual(titles('Trouver des mécènes pour le festival'), ['Trouver mécènes pour festival']);
   // « comptable » (une personne) n'est pas le thème « comptabilité »
-  assert.deepEqual(titles('La facture du traiteur doit être envoyée à la comptable'), ['Facture du traiteur']);
+  assert.deepEqual(titles('La facture du traiteur doit être envoyée à la comptable'), ['Facture traiteur comptable']);
   assert.deepEqual(titles('Envoyer les relances de cotisations aux adhérents en retard de paiement'), ['Envoyer relances de cotisations']);
 });

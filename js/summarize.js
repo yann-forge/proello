@@ -53,8 +53,17 @@ const trimTail = (list) => {
   return out;
 };
 
+/** Retire articles, possessifs, pronoms et mots de remplissage (« répondre à tous mes mails » → « répondre à mails »). */
+function lean(s) {
+  const list = words(s)
+    .map((w) => w.replace(ELISION, ''))
+    .filter((w) => w && !EMPTY.has(lc(w)));
+  return list.length ? list.join(' ') : s;
+}
+
 export function summarize(text) {
-  let s = String(text || '').replace(/\s+/g, ' ').trim();
+  // style télégraphique, même pour les titres courts (rapports #4, #5, #8) : « Travailler guitare »
+  let s = lean(String(text || '').replace(/\s+/g, ' ').trim());
   if (words(s).length <= MAX_WORDS) return cap(s);
 
   // 1. couper à la première explication
@@ -84,8 +93,9 @@ export function summarize(text) {
   if (list.length <= MAX_WORDS) return cap(list.join(' '));
 
   // 3. couper avant une préposition, si on garde au moins 3 mots (« Envoyer devis à Marc »)
+  // (seulement si on retire au moins 2 mots : « rendez-vous à 11h chez dentiste » garde « dentiste »)
   for (let i = MAX_WORDS; i >= 3; i--) {
-    if (PREPS.has(lc(list[i]))) {
+    if (PREPS.has(lc(list[i])) && list.length - i - 1 >= 2) {
       const head = trimTail(list.slice(0, i));
       if (head.length >= 3) return cap(head.join(' '));
     }

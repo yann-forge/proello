@@ -20,7 +20,7 @@ test('au démarrage, la corbeille de plus de 30 jours est effacée', () => {
 });
 
 test('supprimer met à la corbeille, restaurer remet la tâche', () => {
-  const [t] = store.add([{ title: 'Appeler le plombier' }]);
+  const [t] = store.add([{ title: 'Appeler plombier' }]);
   assert.ok(t.updatedAt && t.deletedAt === null);
   store.remove(t.id);
   assert.ok(!store.all().some((x) => x.id === t.id));

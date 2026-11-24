@@ -77,9 +77,9 @@ test('plusieurs tâches, chacune avec sa propre période', () => {
     r.map((t) => [t.title, t.start, t.end, t.urgent, t.important]),
     [
       ['Préparer salon du livre', '2026-11-30', '2026-12-02', false, true],
-      ['Appeler la banque', '2026-11-27', '2026-11-27', true, false],
-      ['Repeindre la chambre', '2026-12-05', '2026-12-07', false, false],
-      ['Faire les courses', '2026-11-24', '2026-11-24', false, false],
+      ['Appeler banque', '2026-11-27', '2026-11-27', true, false],
+      ['Repeindre chambre', '2026-12-05', '2026-12-07', false, false],
+      ['Faire courses', '2026-11-24', '2026-11-24', false, false],
     ]
   );
 });
@@ -87,6 +87,22 @@ test('plusieurs tâches, chacune avec sa propre période', () => {
 test('les précisions dites dans une phrase à part vont à la bonne tâche', () => {
   const r = p('Rédiger le rapport annuel. À rendre avant le 4 décembre. Puis réserver le train. Pour samedi, c’est urgent.');
   assert.equal(r.length, 2);
-  assert.deepEqual([r[0].title, r[0].start, r[0].end], ['Rédiger le rapport annuel', '2026-11-23', '2026-12-04']);
-  assert.deepEqual([r[1].title, r[1].end, r[1].urgent], ['Réserver le train', '2026-11-28', true]);
+  assert.deepEqual([r[0].title, r[0].start, r[0].end], ['Rédiger rapport annuel', '2026-11-23', '2026-12-04']);
+  assert.deepEqual([r[1].title, r[1].end, r[1].urgent], ['Réserver train', '2026-11-28', true]);
+});
+
+test('rapports #4 à #8 : heure, dates collées, « de la semaine prochaine », « A et B »', () => {
+  // l'heure collée à la date part avec elle ; une heure seule reste dans le titre
+  assert.deepEqual(p('envoyer le devis demain à 10h').map((t) => [t.title, t.end]), [['Envoyer devis', '2026-11-24']]);
+  assert.deepEqual(p('rendez vous à 11h chez le dentiste').map((t) => t.title), ['Rendez-vous 11h dentiste']);
+  // « demain mardi » = une seule date
+  assert.deepEqual(w('demain mardi'), ['2026-11-24', '2026-11-24']);
+  // jour de la semaine qualifié
+  assert.deepEqual(w('mardi de la semaine prochaine'), ['2026-12-01', '2026-12-01']);
+  assert.deepEqual(w('jeudi de cette semaine'), ['2026-11-26', '2026-11-26']);
+  assert.deepEqual(w('jeudi et vendredi de la semaine prochaine'), ['2026-12-03', '2026-12-04']);
+  // « A et B » sans « entre »
+  assert.deepEqual(w('lundi et mardi'), ['2026-11-30', '2026-12-01']);
+  // « et la fin de semaine prochaine »
+  assert.deepEqual(w("entre aujourd'hui et la fin de semaine prochaine"), ['2026-11-23', '2026-12-04']);
 });

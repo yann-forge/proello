@@ -45,7 +45,7 @@ test('association : l’exemple du mécénat', () => {
 
 test('autres profils', () => {
   assert.equal(cat('etudiant', 'Réviser le partiel de droit'), 'Examens');
-  assert.equal(cat('etudiant', 'Faire les courses'), 'Quotidien & maison'); // et pas « Cours »
+  assert.equal(cat('etudiant', 'Faire courses'), 'Quotidien & maison'); // et pas « Cours »
   assert.equal(cat('parent', 'Prendre rendez-vous chez le pédiatre'), 'Santé');
   assert.equal(cat('parent', "Revoir le budget des vacances et l'épargne"), 'Budget');
   assert.equal(cat('parent', 'Renvoyer le formulaire de la CAF'), 'Administratif');

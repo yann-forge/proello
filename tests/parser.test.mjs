@@ -9,7 +9,7 @@ const p = (s) => parseDictation(s, NOW);
 
 test('découpe une dictée en plusieurs tâches', () => {
   const r = p("il faut que j'appelle le plombier puis acheter du pain ensuite envoyer le devis à Marc");
-  assert.deepEqual(r.map((t) => t.title), ['Appeler le plombier', 'Acheter du pain', 'Envoyer devis à Marc']);
+  assert.deepEqual(r.map((t) => t.title), ['Appeler plombier', 'Acheter du pain', 'Envoyer devis à Marc']);
 });
 
 test('remet le verbe à l’infinitif après « il faut que je »', () => {
@@ -19,16 +19,16 @@ test('remet le verbe à l’infinitif après « il faut que je »', () => {
     "faut que j'aille à la poste", "il faut que je rappelle maman",
   ].join(' puis ');
   assert.deepEqual(p(said).map((t) => t.title), [
-    'Préparer le dossier', 'Envoyer le colis', 'Finir le rapport', 'Acheter des timbres',
-    'Compléter le formulaire', 'Faire les courses', 'Aller à la poste', 'Rappeler maman',
+    'Préparer dossier', 'Envoyer colis', 'Finir rapport', 'Acheter timbres',
+    'Compléter formulaire', 'Faire courses', 'Aller à poste', 'Rappeler maman',
   ]);
 });
 
 test('détecte urgent et important', () => {
   const [a, b, c] = p("préparer la réunion c'est urgent et important. ranger le garage pas urgent. payer la facture urgent");
-  assert.equal(a.title, 'Préparer la réunion');
+  assert.equal(a.title, 'Préparer réunion');
   assert.deepEqual([a.urgent, a.important], [true, true]);
-  assert.equal(b.title, 'Ranger le garage');
+  assert.equal(b.title, 'Ranger garage');
   assert.deepEqual([b.urgent, b.important], [false, false]);
   assert.deepEqual([c.urgent, c.important], [true, false]);
 });
@@ -37,7 +37,7 @@ test('détecte les dates', () => {
   const [a, b, c, d, e] = p('appeler Paul demain puis réserver le restaurant pour vendredi puis dentiste le 3 décembre puis rapport dans 2 semaines puis courses après-demain');
   assert.equal(a.title, 'Appeler Paul');
   assert.deepEqual([a.start, a.end], ['2026-11-24', '2026-11-24']);
-  assert.equal(b.title, 'Réserver le restaurant');
+  assert.equal(b.title, 'Réserver restaurant');
   assert.deepEqual([b.start, b.end], ['2026-11-27', '2026-11-27']);
   assert.equal(c.title, 'Dentiste');
   assert.equal(c.end, '2026-12-03');
@@ -56,7 +56,7 @@ test('ne coupe pas en plusieurs tâches sur les nombres ni les virgules', () => 
 
 test('résume en 4 mots maximum et garde le texte dicté en détail', () => {
   const cases = [
-    ["il faut que j'appelle le plombier parce que l'évier de la cuisine fuit depuis hier", 'Appeler le plombier'],
+    ["il faut que j'appelle le plombier parce que l'évier de la cuisine fuit depuis hier", 'Appeler plombier'],
     ['envoyer le devis à Marc pour la rénovation de la salle de bain', 'Envoyer devis à Marc'],
     ["réserver une table au restaurant italien pour l'anniversaire de Léa", 'Réserver table restaurant italien'],
     ['préparer la présentation pour le client Dupont avec les chiffres du trimestre', 'Préparer présentation client Dupont'],
@@ -64,7 +64,7 @@ test('résume en 4 mots maximum et garde le texte dicté en détail', () => {
     ['nettoyer entièrement la voiture familiale avant le départ en vacances', 'Nettoyer entièrement voiture familiale'],
     // rapport #2 : tournure au passif et mots de la même famille
     ["Un bilan et rapport devra être fait et rapporter aux membres de l'association", 'Bilan et rapport'],
-    ['La facture du traiteur doit être envoyée à la comptable avant la fin du mois', 'Facture du traiteur'],
+    ['La facture du traiteur doit être envoyée à la comptable avant la fin du mois', 'Facture traiteur comptable'],
   ];
   for (const [said, title] of cases) {
     const [t] = p(said);
@@ -94,20 +94,20 @@ test('enchaînements : « dans un second temps », « par la suite », « une fo
     'en parallèle trier les cartons',
   ].join(' ');
   assert.deepEqual(p(said).map((t) => t.title), [
-    'Appeler le notaire', 'Envoyer le compromis', 'Prévenir la banque', 'Réserver le déménageur', 'Trier les cartons',
+    'Appeler notaire', 'Envoyer compromis', 'Prévenir banque', 'Réserver déménageur', 'Trier cartons',
   ]);
 });
 
 test('formules d’intention retirées et but (« pour + verbe ») hors du titre', () => {
   const [a] = p('besoin de faire les courses pour remplir le frigo avant jeudi');
-  assert.deepEqual([a.title, a.start, a.end], ['Faire les courses', '2026-11-23', '2026-11-26']);
+  assert.deepEqual([a.title, a.start, a.end], ['Faire courses', '2026-11-23', '2026-11-26']);
   assert.match(a.notes, /pour remplir le frigo/);
   assert.deepEqual(
     p(
       "j'ai besoin d'appeler le garage puis il me faut un nouveau chargeur puis il va falloir ranger la cave " +
         "puis j'ai prévu de repeindre le portail puis il est temps de trier les papiers"
     ).map((t) => t.title),
-    ['Appeler le garage', 'Un nouveau chargeur', 'Ranger la cave', 'Repeindre le portail', 'Trier les papiers']
+    ['Appeler garage', 'Nouveau chargeur', 'Ranger cave', 'Repeindre portail', 'Trier papiers']
   );
   // « pour » suivi d'un nom, d'un article ou d'un prénom : pas un but, on ne coupe pas
   assert.deepEqual(p('acheter un cadeau pour Olivier et un pour Marie').map((t) => t.title), ['Acheter cadeau Olivier Marie']);

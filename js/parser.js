@@ -22,7 +22,7 @@ const SEPARATORS = word(
     'dans un (?:premier|second|deuxième|troisième|quatrième|dernier|autre) temps',
     'en (?:premier|second|deuxième|troisième|dernier) lieu',
     'par la suite', 'après cela', 'suite à (?:cela|ça)', "une fois (?:que (?:c['’]est|ce sera) |cela |ça )?fait",
-    'en parallèle', 'parallèlement', "d['’]autre part", 'par ailleurs',
+    'en parallèle', 'parallèlement', 'et toujours', 'et encore', 'et également', "d['’]autre part", 'par ailleurs',
     '(?:première|deuxième|seconde|troisième|quatrième|cinquième|sixième|dernière) tâche',
   ].join('|')
 );
@@ -39,7 +39,7 @@ const IMPORTANT = word(
 const LEADING_FILLERS = new RegExp(
   '^(?:' +
     [
-      'alors', 'bon', 'donc', 'ok', 'okay', 'euh', 'et', 'aussi', 'ah', 'oui',
+      'alors', 'bon', 'donc', 'ok', 'okay', 'euh', 'et', 'aussi', 'ah', 'oui', 'toujours', 'encore', 'également',
       'il (?:faut|faudrait)(?: absolument| vraiment| aussi)?(?: que (?:je |j[\'’]))?',
       'je (?:dois|devrais|voudrais|veux)(?: absolument| vraiment| aussi)?',
       // formules d'intention : « besoin de », « il me faut », « il va falloir »…
@@ -94,6 +94,8 @@ export function toInfinitive(w) {
 
 function clean(s) {
   s = s.replace(/\s+/g, ' ').trim();
+  // mots composés que la reconnaissance vocale écrit sans trait d'union (« vous » ne doit pas être retiré)
+  s = s.replace(/(?<![\p{L}])rendez[\s-]vous(?![\p{L}])/giu, 'rendez-vous');
   s = s.replace(QUE_JE, (m, verb) => toInfinitive(verb));
   let prev;
   do {

@@ -59,5 +59,101 @@
       }
     ],
     "comment": ""
+  },
+  {
+    "issue": 4,
+    "now": "2026-11-24T17:39",
+    "input": "demain mercredi trouver dossier solidaire à Malakoff Humanis ensuite toujours demain rendez vous à 11h la mairie de Trélazé et toujours demain une demande d'aide solidaire spécifique à France travail",
+    "problems": [
+      "decoupage"
+    ],
+    "expected": [
+      {
+        "title": "Trouver dossier solidaire",
+        "start": "2026-11-25",
+        "end": "2026-11-25",
+        "urgent": false,
+        "important": false
+      },
+      {
+        "title": "Rendez vous 11h mairie",
+        "start": "2026-11-25",
+        "end": "2026-11-25",
+        "urgent": false,
+        "important": false
+      },
+      {
+        "title": "Aide Solidaire Spécifique",
+        "start": "2026-11-25",
+        "end": "2026-11-25",
+        "urgent": false,
+        "important": false
+      }
+    ],
+    "comment": ""
+  },
+  {
+    "issue": 5,
+    "now": "2026-11-24T21:55",
+    "input": "travailler la guitare jeudi et vendredi de cette semaine",
+    "problems": [
+      "titre",
+      "dates"
+    ],
+    "expected": [
+      {
+        "title": "Travailler guitare",
+        "start": "2026-11-26",
+        "end": "2026-11-27",
+        "urgent": false,
+        "important": false
+      }
+    ],
+    "comment": ""
+  },
+  {
+    "issue": 6,
+    "now": "2026-11-24T21:57",
+    "input": "",
+    "problems": [],
+    "expected": [],
+    "comment": "Pas d'erreur particulière dans ce rapport simplement une suggestion d'amélioration de l'application au moment de la dictée d'une tâche et de sa validation quand on doit choisir et corriger la période et sélectionner si c'est urgent et important, il faudrait aussi pouvoir sélectionner la catégorie de tâches parmi les 9 prédéfinis dans le profil",
+    "pending": "Suggestion sans dictée : choisir la catégorie à la validation (existe depuis la 0.6.0)."
+  },
+  {
+    "issue": 7,
+    "now": "2026-11-24T22:05",
+    "input": "les supports de communication pour mon activité de technicien son à faire entre aujourd'hui et la fin de semaine prochaine",
+    "problems": [
+      "dates"
+    ],
+    "expected": [
+      {
+        "title": "Supports de communication",
+        "start": "2026-11-24",
+        "end": "2026-12-04",
+        "urgent": false,
+        "important": false
+      }
+    ],
+    "comment": ""
+  },
+  {
+    "issue": 8,
+    "now": "2026-11-24T22:07",
+    "input": "répondre à tous mes mails avant vendredi 15h",
+    "problems": [
+      "titre"
+    ],
+    "expected": [
+      {
+        "title": "Répondre à mails",
+        "start": "2026-11-24",
+        "end": "2026-11-27",
+        "urgent": false,
+        "important": false
+      }
+    ],
+    "comment": ""
   }
 ]

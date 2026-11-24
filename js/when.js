@@ -158,7 +158,10 @@ const RULES = [
   { re: "ce mois[-\\s]ci", fn: (m, now) => span(plus(now, 0), lastOfMonth(now.getFullYear(), now.getMonth())) },
   {
     re: `${ART}(${WD})${MOMENT}`,
-    fn: (m, now) => ({ ...one(nextWeekday(now, WEEKDAYS.indexOf(m[1].toLowerCase()))), weekday: true }),
+    fn: (m, now) => {
+      const wd = WEEKDAYS.indexOf(m[1].toLowerCase());
+      return { ...one(nextWeekday(now, wd)), weekday: true, wd };
+    },
   },
   {
     re: `dans (${NUM}) (jours?|semaines?|mois)`,
@@ -185,13 +188,54 @@ function findDates(text, now) {
   for (const f of found.sort((a, b) => b.endIndex - b.index - (a.endIndex - a.index))) {
     if (!chosen.some((c) => f.index < c.endIndex && c.index < f.endIndex)) chosen.push(f);
   }
-  return chosen.sort((a, b) => a.index - b.index);
+  chosen.sort((a, b) => a.index - b.index);
+
+  // « vendredi 15h », « demain à 10 h 30 » : l'heure fait partie de la date (rapport #8)
+  for (const d of chosen) {
+    const t = text.slice(d.endIndex).match(TIME_AFTER);
+    if (t) d.endIndex += t[0].length;
+  }
+
+  // « jeudi de cette semaine », « mardi de la semaine prochaine » (rapport #5)
+  for (const d of chosen) {
+    if (!d.weekday) continue;
+    const q = text.slice(d.endIndex).match(WEEK_QUALIFIER);
+    if (!q) continue;
+    d.week = /prochaine|d['’]après/i.test(q[1]) ? 'next' : 'this';
+    d.start = d.end = inWeek(now, d.week, d.wd);
+    d.endIndex += q[0].length;
+  }
+
+  // deux dates collées (« demain mercredi ») : une seule date (rapport #4)
+  const merged = [];
+  for (const d of chosen) {
+    const prev = merged[merged.length - 1];
+    if (prev && d.index < prev.endIndex) continue; // déjà absorbée (qualificatif de semaine)
+    if (prev && /^\s+$/.test(text.slice(prev.endIndex, d.index)) && !prev.period && !d.period) {
+      prev.endIndex = d.endIndex;
+      continue;
+    }
+    merged.push(d);
+  }
+  return merged;
+}
+
+const TIME_AFTER = /^\s*,?\s*(?:à|vers|avant|dès|pour)?\s*(?:\d{1,2}\s*(?:h|heures?)(?:\s*\d{2})?|midi|minuit)(?![\p{L}\d])/iu;
+const WEEK_QUALIFIER = /^\s*(?:de\s+|d['’])?(cette semaine|la semaine prochaine|la semaine d['’]après)(?![\p{L}])/iu;
+
+/** Le jour `wd` de cette semaine ou de la suivante (semaine du lundi au dimanche). */
+function inWeek(now, week, wd) {
+  const monday = week === 'next' ? nextWeekday(now, 1) : plus(now, -((now.getDay() + 6) % 7));
+  return new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + ((wd + 6) % 7));
 }
 
 /* ---------- mots autour des dates ---------- */
 
 const RANGE_START = /(?:entre|du|de|depuis|à partir du|à partir de|à partir d['’]|à compter du|à compter de|dès)\s*$/iu;
-const RANGE_MID = /^\s*,?\s*(?:et|au|à|jusqu['’]au|jusqu['’]à|jusqu['’]|-|–|—)\s*$/iu;
+// « et la fin de semaine prochaine » : un article peut suivre le mot de liaison (rapport #7)
+const RANGE_MID = /^\s*,?\s*(?:et|au|à|jusqu['’]au|jusqu['’]à|jusqu['’]|-|–|—)(?:\s+(?:le|la|l['’]|ce|cette))?\s*$/iu;
+// « jeudi et vendredi » sans « entre » : une période aussi (rapport #5)
+const AND_MID = /^\s*,?\s*et\s*$/iu;
 // « pour le 2 décembre » = ce jour-là (rapport #3) ; « avant / d'ici / au plus tard » = échéance
 const DEADLINE = /(?:avant|d['’]ici|au plus tard|jusqu['’]au|jusqu['’]à|à rendre|à terminer|à finir|à boucler|à livrer|dernier délai|délai|échéance|deadline|maximum|max)\s*,?\s*$/iu;
 const START = /(?:à partir du|à partir de|à partir d['’]|à compter du|à compter de|dès|commencer|démarrer)\s*$/iu;
@@ -213,12 +257,14 @@ export function extractWhen(text, now = new Date()) {
     const before = text.slice(0, a.index);
     const between = b ? text.slice(a.endIndex, b.index) : '';
     const rs = before.match(RANGE_START);
-    if (b && rs && RANGE_MID.test(between)) {
-      // entre A et B, du A au B… (« de lundi à mercredi » : le mercredi qui suit ce lundi)
-      start = a.start;
+    if (b && ((rs && RANGE_MID.test(between)) || AND_MID.test(between))) {
+      // entre A et B, du A au B, A et B… (« de lundi à mercredi » : le mercredi qui suit ce lundi)
+      // « jeudi et vendredi de la semaine prochaine » : le qualificatif vaut pour les deux jours
+      const first = a.weekday && b.week ? inWeek(now, b.week, a.wd) : a.start;
+      start = first;
       end = b.end;
       if (b.weekday) while (end < start) end = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 7);
-      cuts.push([rs.index, b.endIndex]);
+      cuts.push([rs ? rs.index : a.index, b.endIndex]);
     } else {
       const dl = before.match(DEADLINE);
       const st = before.match(START);
