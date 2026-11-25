@@ -156,7 +156,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 120px; }
 .task-title { display: block; width: 100%; text-align: left; font-weight: 700; font-size: 1.02rem; line-height: 1.35; overflow-wrap: anywhere; padding: 2px 0; }
 .task-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: center; }
 /* Liste : infos d'une tâche sur une seule ligne, toujours dans le même ordre :
-   Urgent · Important · date · catégorie · détail. Si la place manque, catégorie puis date se raccourcissent (…). */
+   catégorie · détail · date · Urgent · Important. Si la place manque, catégorie puis date se raccourcissent (…). */
 .task-list .task-meta { flex-wrap: nowrap; min-width: 0; }
 .task-list .task-meta > * { flex: none; }
 .task-list .task-meta .date-chip, .task-list .task-meta .cat-chip { display: block; line-height: 26px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

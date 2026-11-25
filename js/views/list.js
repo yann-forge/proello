@@ -60,11 +60,11 @@ function item(t) {
     <div class="task-body">
       <button class="task-title" data-act="edit">${esc(t.title)}</button>
       <div class="task-meta">
-        ${t.urgent ? '<button class="pill pill-u on" data-act="urgent" aria-pressed="true" title="Retirer « urgent »">Urgent</button>' : ''}
-        ${t.important ? '<button class="pill pill-i on" data-act="important" aria-pressed="true" title="Retirer « important »">Important</button>' : ''}
-        ${listDate(t)}
         ${catChip(t)}
         ${detailBtn(t)}
+        ${listDate(t)}
+        ${t.urgent ? '<button class="pill pill-u on" data-act="urgent" aria-pressed="true" title="Retirer « urgent »">Urgent</button>' : ''}
+        ${t.important ? '<button class="pill pill-i on" data-act="important" aria-pressed="true" title="Retirer « important »">Important</button>' : ''}
       </div>
       ${opened.has(t.id) ? `<p class="task-detail">${detailText(t)}</p>` : ''}
     </div>
