@@ -1,9 +1,8 @@
-// Vue 2 : planning façon Gantt, « épuré » :
-// - pas de colonne de noms : chaque titre n'est écrit qu'une fois, dans sa barre ou juste à côté ;
-// - les tâches qui ne se chevauchent pas (titre compris) partagent la même ligne, côte à côte ;
-// - les barres se déplacent / s'étirent au doigt ou à la souris.
+// Vue 2 : planning façon Gantt :
+// - une ligne par tâche, son titre dans la colonne de gauche (petit, sur plusieurs lignes si besoin) ;
+// - rien n'est écrit dans les barres, qui se déplacent / s'étirent au doigt ou à la souris.
 
-import { QUADS, QUAD_ORDER, quadrantOf, sortTasks } from '../tasks.js';
+import { quadrantOf, sortTasks } from '../tasks.js';
 import { todayISO, addDays, diffDays, fromISO, fmtShort, fmtTime } from '../dates.js';
 import { renderDay, legendHtml } from './day.js';
 import { esc, lsGet, lsSet } from '../util.js';
@@ -17,64 +16,13 @@ const WD = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 const fmtMonth = new Intl.DateTimeFormat('fr-FR', { month: 'short' });
 const state = { start: null, span: lsGet('proello.gantt.span', 14), day: null }; // day : vue journée ouverte
 
-const LANE_H = 40; // hauteur d'une ligne
-const BAR_H = 30;
-const PAD = 10; // marge en haut et en bas du planning
-const GAP = 10; // espace minimal entre deux tâches sur une même ligne
-const LABEL_GAP = 6; // espace entre une barre et son titre écrit à côté
-
-// Mesure de la largeur d'un titre (pour savoir s'il tient dans sa barre)
-let ctx2d = null;
-function textWidth(text, weight) {
-  ctx2d ||= document.createElement('canvas').getContext('2d');
-  ctx2d.font = `${weight} 13px Nunito, ui-rounded, system-ui, sans-serif`;
-  return Math.ceil(ctx2d.measureText(text).width);
+/** Position horizontale d'une barre (en px, dans la zone des jours). */
+function barBox(s, e, span, dayW) {
+  const a = Math.max(s, 0);
+  const b = Math.min(e, span - 1);
+  return { left: a * dayW + 3, width: Math.max(b - a + 1, 1) * dayW - 6 };
 }
-
-/**
- * Place chaque tâche visible : position de la barre, titre dedans / à droite / à gauche, et ligne.
- * Une ligne accueille plusieurs tâches tant que leurs zones (barre + titre) ne se touchent pas.
- */
-function layout(tasks, span, dayW) {
-  const totalW = span * dayW;
-  const items = tasks.map((t) => {
-    const s = diffDays(state.start, t.start);
-    const e = diffDays(state.start, t.end);
-    const a = Math.max(s, 0);
-    const b = Math.min(e, span - 1);
-    const left = a * dayW + 3;
-    const width = Math.max(b - a + 1, 1) * dayW - 6;
-    const label = textWidth(barLabel(t), 800);
-    let mode = 'in';
-    let occL = left;
-    let occR = left + width;
-    if (width < label + 22) {
-      if (left + width + LABEL_GAP + label <= totalW) {
-        mode = 'right';
-        occR = left + width + LABEL_GAP + label;
-      } else if (left - LABEL_GAP - label >= 0) {
-        mode = 'left';
-        occL = left - LABEL_GAP - label;
-      }
-    }
-    return { t, s, e, left, width, mode, occL, occR };
-  });
-
-  // tri : début, puis tâches longues d'abord ; les terminées en dernier
-  items.sort((x, y) => Number(x.t.done) - Number(y.t.done) || x.occL - y.occL || y.occR - x.occR);
-  const lanes = []; // bord droit occupé de chaque ligne
-  for (const it of items) {
-    let lane = lanes.findIndex((r) => r + GAP <= it.occL);
-    if (lane < 0) lane = lanes.push(-Infinity) - 1;
-    lanes[lane] = it.occR;
-    it.lane = lane;
-  }
-  return { items, lanes: lanes.length };
-}
-
-const barStyle = (left, width, lane) => `left:${left}px;width:${width}px;top:${PAD + lane * LANE_H + (LANE_H - BAR_H) / 2}px`;
-
-const barLabel = (t) => (t.time ? `${fmtTime(t.time)} · ${t.title}` : t.title);
+const barStyle = ({ left, width }) => `left:${left}px;width:${width}px`;
 
 export function renderGantt(root, tasks, ctx) {
   const today = todayISO();
@@ -98,7 +46,9 @@ export function renderGantt(root, tasks, ctx) {
   const spanDef = SPANS.find((s) => s.days === span) || SPANS[1];
   const last = addDays(state.start, span - 1);
   const avail = Math.max(0, root.clientWidth - 2);
-  const dayW = Math.max(span > 14 ? 30 : 40, Math.floor(avail / span));
+  // colonne des titres : étroite sur téléphone
+  const nameW = avail < 520 ? 104 : avail < 900 ? 150 : 190;
+  const dayW = Math.max(span > 14 ? 26 : 34, Math.floor((avail - nameW) / span));
   const prevScroll = root.querySelector('.gantt')?.scrollLeft;
 
   const scheduled = tasks.filter((t) => t.start);
@@ -107,7 +57,8 @@ export function renderGantt(root, tasks, ctx) {
   const after = scheduled.filter((t) => t.start > last && !t.done).sort((a, b) => (a.start < b.start ? -1 : 1));
   const unscheduled = sortTasks(tasks.filter((t) => !t.start && !t.done));
   const days = Array.from({ length: span }, (_, i) => addDays(state.start, i));
-  const { items, lanes } = layout(visible, span, dayW);
+  // ordre des lignes : à faire d'abord, puis par date de début, puis par priorité
+  const rows = sortTasks(visible).sort((x, y) => Number(x.done) - Number(y.done) || (x.start < y.start ? -1 : x.start > y.start ? 1 : 0));
 
   const head = days
     .map((d, i) => {
@@ -125,18 +76,24 @@ export function renderGantt(root, tasks, ctx) {
     })
     .join('');
 
-  const bars = items
-    .map(
-      ({ t, s, e, left, width, mode, lane }) => `<div class="g-bar q-${quadrantOf(t)} lbl-${mode} ${t.done ? 'is-done' : ''} ${s < 0 ? 'clip-l' : ''} ${
-        e > span - 1 ? 'clip-r' : ''
-      }" data-id="${t.id}" data-lane="${lane}" style="${barStyle(left, width, lane)}" title="${esc(t.title)}">
-        <i class="g-handle l"></i><span class="g-label">${esc(barLabel(t))}</span><i class="g-handle r"></i>
-      </div>`
-    )
+  const rowsHtml = rows
+    .map((t) => {
+      const s = diffDays(state.start, t.start);
+      const e = diffDays(state.start, t.end);
+      const q = quadrantOf(t);
+      return `<div class="g-row ${t.done ? 'is-done' : ''}">
+        <button class="g-name q-${q}" data-edit="${t.id}">${t.time ? `<small>${fmtTime(t.time, t.endTime)}</small>` : ''}<span>${esc(t.title)}</span></button>
+        <div class="g-track">
+          <div class="g-bar q-${q} ${t.done ? 'is-done' : ''} ${s < 0 ? 'clip-l' : ''} ${e > span - 1 ? 'clip-r' : ''}" data-id="${t.id}"
+            style="${barStyle(barBox(s, e, span, dayW))}" title="${esc(t.title)}" aria-label="${esc(t.title)}">
+            <i class="g-handle l"></i><i class="g-handle r"></i>
+          </div>
+        </div>
+      </div>`;
+    })
     .join('');
 
   const todayIdx = diffDays(state.start, today);
-  const bodyH = Math.max(lanes, 2) * LANE_H + PAD * 2;
   const outside =
     before.length || after.length
       ? `<div class="g-outside">
@@ -156,16 +113,15 @@ export function renderGantt(root, tasks, ctx) {
       <span class="range-label">${fmtShort(state.start)} – ${fmtShort(last)}</span>
     </div>
     ${legendHtml()}
-    <div class="gantt" style="--day-w:${dayW}px;--days:${span}">
+    <div class="gantt" style="--day-w:${dayW}px;--days:${span};--name-w:${nameW}px">
       <div class="g-inner">
-        <div class="g-head">${head}</div>
-        <div class="g-body" style="height:${bodyH}px">
+        <div class="g-head"><div class="g-corner">Tâches</div>${head}</div>
+        <div class="g-body">
           <div class="g-grid">${grid}</div>
-          ${todayIdx >= 0 && todayIdx < span ? `<div class="g-now" style="left:${(todayIdx + 0.5) * dayW}px"></div>` : ''}
-          ${bars}
+          ${todayIdx >= 0 && todayIdx < span ? `<div class="g-now" style="left:calc(var(--name-w) + ${(todayIdx + 0.5) * dayW}px)"></div>` : ''}
           ${
-            items.length
-              ? ''
+            rows.length
+              ? rowsHtml
               : `<p class="g-empty">${
                   scheduled.length
                     ? 'Aucune tâche sur cette période.'
@@ -229,7 +185,6 @@ export function renderGantt(root, tasks, ctx) {
     if (!bar || ev.button > 0) return;
     ev.preventDefault();
     const id = bar.dataset.id;
-    const lane = Number(bar.dataset.lane);
     const t = tasks.find((x) => x.id === id);
     const mode = ev.target.closest('.g-handle.l') ? 'start' : ev.target.closest('.g-handle.r') ? 'end' : 'move';
     const s0 = diffDays(state.start, t.start);
@@ -252,9 +207,7 @@ export function renderGantt(root, tasks, ctx) {
         en += delta;
       } else if (mode === 'start') s = Math.min(s0 + delta, e0);
       else en = Math.max(e0 + delta, s0);
-      const a = Math.max(s, 0);
-      const b = Math.min(en, span - 1);
-      bar.style.cssText = barStyle(a * dayW + 3, Math.max(b - a + 1, 1) * dayW - 6, lane);
+      bar.style.cssText = barStyle(barBox(s, en, span, dayW));
       bar.classList.add('dragging');
     };
     const finish = (e) => {

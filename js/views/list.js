@@ -32,8 +32,8 @@ function item(t) {
         ${catChip(t)}
         ${detailMark(t)}
         ${dateChip(t)}
-        <button class="pill pill-u ${t.urgent ? 'on' : ''}" data-act="urgent" aria-pressed="${t.urgent}">Urgent</button>
-        <button class="pill pill-i ${t.important ? 'on' : ''}" data-act="important" aria-pressed="${t.important}">Important</button>
+        ${t.urgent ? '<button class="pill pill-u on" data-act="urgent" aria-pressed="true" title="Retirer « urgent »">Urgent</button>' : ''}
+        ${t.important ? '<button class="pill pill-i on" data-act="important" aria-pressed="true" title="Retirer « important »">Important</button>' : ''}
       </div>
     </div>
     <span class="q-tag" title="${QUADS[q].label}">${QUADS[q].short}</span>

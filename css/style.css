@@ -198,7 +198,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 120px; }
 .range-label { font-weight: 800; color: var(--muted); margin-left: auto; }
 
 .gantt { overflow-x: auto; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); overscroll-behavior-x: contain; }
-.g-inner { width: calc(var(--days) * var(--day-w)); }
+.g-inner { width: calc(var(--name-w) + var(--days) * var(--day-w)); }
 .g-head { display: flex; position: sticky; top: 0; z-index: 3; background: var(--surface); border-bottom: 1px solid var(--line); }
 .g-day { position: relative; flex: 0 0 var(--day-w); width: var(--day-w); padding: 18px 0 8px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 0.72rem; color: var(--muted); }
 .g-day b { font-size: 0.95rem; color: var(--ink); }
@@ -206,8 +206,26 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 120px; }
 .g-day.we { background: var(--surface-2); }
 .g-day.today b { background: var(--orange-strong); color: #fff; border-radius: 999px; min-width: 26px; padding: 2px 6px; text-align: center; }
 
-.g-body { position: relative; min-height: 100px; }
-.g-grid { position: absolute; inset: 0; display: flex; pointer-events: none; }
+.g-corner {
+  position: sticky; left: 0; z-index: 2; flex: 0 0 var(--name-w); width: var(--name-w); display: flex; align-items: flex-end;
+  padding: 0 8px 8px; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);
+  background: var(--surface); border-right: 1px solid var(--line);
+}
+.g-body { position: relative; min-height: 100px; padding-bottom: 4px; }
+.g-grid { position: absolute; top: 0; bottom: 0; left: var(--name-w); display: flex; pointer-events: none; }
+/* une ligne par tâche : titre à gauche (petit, sur plusieurs lignes), barre sans texte à droite */
+.g-row { position: relative; display: flex; min-height: 36px; border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent); }
+.g-name {
+  position: sticky; left: 0; z-index: 3; flex: 0 0 var(--name-w); width: var(--name-w);
+  display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 5px 8px 5px 9px; text-align: left;
+  font: inherit; font-size: 0.72rem; font-weight: 800; line-height: 1.2; color: var(--ink); overflow-wrap: anywhere;
+  background: var(--surface); border-right: 1px solid var(--line); box-shadow: inset 3px 0 0 var(--q-strong); cursor: pointer;
+}
+.g-name small { font-size: 0.64rem; font-weight: 800; color: var(--muted); }
+.g-name:hover span { color: var(--orange-ink); }
+.g-row.is-done .g-name { opacity: 0.55; }
+.g-row.is-done .g-name span { text-decoration: line-through; }
+.g-track { position: relative; flex: 0 0 calc(var(--days) * var(--day-w)); }
 .g-grid div { flex: 0 0 var(--day-w); width: var(--day-w); border-right: 1px dashed color-mix(in srgb, var(--line) 80%, transparent); }
 .g-grid .we { background: color-mix(in srgb, var(--surface-2) 80%, transparent); }
 .g-grid .today { background: color-mix(in srgb, var(--orange-soft) 70%, transparent); }
@@ -215,7 +233,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 120px; }
 
 /* Une barre par tâche ; le titre est dedans (lbl-in) ou juste à côté (lbl-right / lbl-left) */
 .g-bar {
-  position: absolute; height: 30px; border-radius: 10px;
+  position: absolute; top: 50%; height: 20px; margin-top: -10px; border-radius: 8px;
   background: var(--q); color: var(--q-ink); border: 1.5px solid var(--q-strong);
   display: flex; align-items: center; padding: 0 10px; font-size: 0.82rem; font-weight: 800;
   cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
