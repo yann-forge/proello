@@ -155,6 +155,22 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 120px; }
 .task-body { flex: 1; min-width: 0; }
 .task-title { display: block; width: 100%; text-align: left; font-weight: 700; font-size: 1.02rem; line-height: 1.35; overflow-wrap: anywhere; padding: 2px 0; }
 .task-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: center; }
+/* Liste : infos d'une tâche sur une seule ligne, toujours dans le même ordre :
+   Urgent · Important · date · catégorie · détail. Si la place manque, catégorie puis date se raccourcissent (…). */
+.task-list .task-meta { flex-wrap: nowrap; min-width: 0; }
+.task-list .task-meta > * { flex: none; }
+.task-list .task-meta .date-chip, .task-list .task-meta .cat-chip { display: block; line-height: 26px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.task-list .task-meta .date-chip { flex: 0 1 auto; min-width: 54px; }
+.task-list .task-meta .cat-chip { flex: 0 3 auto; min-width: 30px; }
+.task-list .d-short { display: none !important; }
+@media (max-width: 760px) {
+  /* téléphone : pastilles plus serrées, date courte (« → Ven. 14h »), catégorie réduite à sa couleur si la place manque */
+  .task-list .task-meta { gap: 4px; }
+  .task-list .pill { padding: 0 8px; }
+  .task-list .d-long { display: none !important; }
+  .task-list .task-meta .d-short { display: block !important; flex: none; min-width: 0; padding: 0 8px; overflow: visible; }
+  .task-list .task-meta .cat-chip { min-width: 14px; padding: 0 7px; }
+}
 .q-tag { flex-shrink: 0; align-self: center; font-size: 0.75rem; font-weight: 800; padding: 4px 10px; border-radius: 999px; background: var(--q-soft); color: var(--q-ink); }
 .task.is-done { opacity: 0.55; }
 .task.is-done .task-title { text-decoration: line-through; }
