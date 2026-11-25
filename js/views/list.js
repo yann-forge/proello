@@ -77,7 +77,12 @@ export function renderList(root, tasks, ctx) {
           <b>${counts[k]}</b><span>${QUADS[k].short}</span></button>`
       ).join('')}
     </div>
-    <div class="progress" aria-label="Progression"><div style="width:${pct}%"></div></div>
+    <div class="progress-row">
+      <div class="progress" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Tâches terminées">
+        <div style="width:${pct}%;background-size:${pct ? 10000 / pct : 100}% 100%"></div>
+      </div>
+      <span class="progress-label">${doneCount} / ${tasks.length} terminée${doneCount > 1 ? 's' : ''}</span>
+    </div>
     <div class="list-toolbar">
       <div class="seg">
         <button data-filter="todo" class="${state.filter === 'todo' ? 'on' : ''}">À faire <small>${open.length}</small></button>

@@ -132,8 +132,11 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 120px; }
 .sum:hover { transform: translateY(-1px); }
 .sum.active { border-color: var(--q-strong); background: var(--q); }
 
-.progress { height: 6px; margin: 14px 0 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
-.progress div { height: 100%; background: linear-gradient(90deg, var(--green-strong), var(--yellow-strong), var(--orange-strong)); border-radius: inherit; transition: width 0.5s; }
+/* Progression : part des tâches terminées (parmi celles affichées). Violet foncé → clair à mesure qu'elle se remplit. */
+.progress-row { display: flex; align-items: center; gap: 10px; margin: 14px 0 6px; }
+.progress { flex: 1; height: 8px; border-radius: 99px; background: #ece6f5; overflow: hidden; }
+.progress div { height: 100%; background: linear-gradient(90deg, #4b2a7a, #8a63c4, #d4c2f0) left / 100% 100% no-repeat; border-radius: inherit; transition: width 0.5s; }
+.progress-label { flex: none; font-size: 0.78rem; font-weight: 800; color: #5d3d8f; }
 
 .list-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 12px 0; flex-wrap: wrap; }
 .seg { display: inline-flex; padding: 3px; gap: 2px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; }
