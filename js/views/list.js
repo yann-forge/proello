@@ -16,21 +16,6 @@ export function dateChip(t) {
   return `<span class="date-chip ${late ? 'late' : ''}">${late ? 'En retard · ' : ''}${range}${esc(relLabel(t.end))}${time ? ` · ${time}` : ''}</span>`;
 }
 
-/** Date compacte pour téléphone : « Auj. », « Dem. », « Ven. », précédée de « → » pour une période. */
-const SHORT = (label) =>
-  label
-    .replace("Aujourd'hui", 'Auj.')
-    .replace('Demain', 'Dem.')
-    .replace(/^(Lundi|Mardi|Mercredi|Jeudi|Vendredi|Samedi|Dimanche)/, (w) => w.slice(0, 3) + '.');
-function listDate(t) {
-  const full = dateChip(t);
-  if (!full || !t.end) return full;
-  const late = !t.done && t.end < todayISO();
-  const time = t.time ? ` ${fmtTime(t.time, t.endTime)}` : '';
-  const range = t.start && t.start !== t.end ? '→ ' : '';
-  return `<span class="date-chip d-long ${late ? 'late' : ''}">${full.replace(/^<span[^>]*>|<\/span>$/g, '')}</span><span class="date-chip d-short ${late ? 'late' : ''}">${late ? '⚠ ' : ''}${range}${esc(SHORT(relLabel(t.end)))}${time}</span>`;
-}
-
 /** Petit symbole indiquant qu'un détail (texte dicté, notes) est disponible en ouvrant la tâche. */
 const hasDetail = (t) => (t.notes && t.notes.trim()) || (t.source && t.source.trim().toLowerCase() !== t.title.trim().toLowerCase());
 const DETAIL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9" /></svg>';
@@ -62,9 +47,14 @@ function item(t) {
       <div class="task-meta">
         ${catChip(t)}
         ${detailBtn(t)}
-        ${listDate(t)}
-        ${t.urgent ? '<button class="pill pill-u on" data-act="urgent" aria-pressed="true" title="Retirer « urgent »">Urgent</button>' : ''}
-        ${t.important ? '<button class="pill pill-i on" data-act="important" aria-pressed="true" title="Retirer « important »">Important</button>' : ''}
+        ${dateChip(t)}
+        ${
+          t.urgent || t.important
+            ? `<span class="prio">${t.urgent ? '<button class="pill pill-u on" data-act="urgent" aria-pressed="true" title="Retirer « urgent »">Urgent</button>' : ''}${
+                t.important ? '<button class="pill pill-i on" data-act="important" aria-pressed="true" title="Retirer « important »">Important</button>' : ''
+              }</span>`
+            : ''
+        }
       </div>
       ${opened.has(t.id) ? `<p class="task-detail">${detailText(t)}</p>` : ''}
     </div>
