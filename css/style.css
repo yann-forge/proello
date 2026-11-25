@@ -295,6 +295,10 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 120px; }
 .mx-title .date-chip { height: 22px; font-size: 0.72rem; }
 .detail-mark { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 999px; background: var(--sand-soft); color: var(--sand-ink); }
 .detail-mark svg { width: 15px; height: 15px; stroke-width: 2.4; }
+button.detail-mark { cursor: pointer; transition: background 0.15s; }
+button.detail-mark:hover, button.detail-mark.on { background: var(--sand-strong); color: var(--ink); }
+.task-detail { margin: 6px 0 0; padding: 7px 10px; border-radius: 10px; background: var(--surface-2); font-size: 0.84rem; line-height: 1.4; color: var(--ink); white-space: pre-line; overflow-wrap: anywhere; }
+.task-detail i { color: var(--muted); }
 .mx-meta .detail-mark { width: 22px; height: 22px; }
 .rv-detail { margin: 6px 2px 0; font-size: 0.82rem; line-height: 1.4; color: var(--muted); }
 .rv-detail span { font-weight: 800; }

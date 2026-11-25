@@ -17,10 +17,26 @@ export function dateChip(t) {
 }
 
 /** Petit symbole indiquant qu'un détail (texte dicté, notes) est disponible en ouvrant la tâche. */
-export const detailMark = (t) =>
-  (t.notes && t.notes.trim()) || (t.source && t.source.trim().toLowerCase() !== t.title.trim().toLowerCase())
-    ? `<span class="detail-mark" title="Détail disponible" aria-label="Détail disponible"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9" /></svg></span>`
+const hasDetail = (t) => (t.notes && t.notes.trim()) || (t.source && t.source.trim().toLowerCase() !== t.title.trim().toLowerCase());
+const DETAIL_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9" /></svg>';
+export const detailMark = (t) => (hasDetail(t) ? `<span class="detail-mark" title="Détail disponible" aria-label="Détail disponible">${DETAIL_SVG}</span>` : '');
+
+// tâches dont le détail est déplié dans la liste (le temps de la session)
+const opened = new Set();
+const detailBtn = (t) =>
+  hasDetail(t)
+    ? `<button class="detail-mark ${opened.has(t.id) ? 'on' : ''}" data-act="detail" aria-expanded="${opened.has(t.id)}" title="Voir le détail" aria-label="Voir le détail">${DETAIL_SVG}</button>`
     : '';
+function detailText(t) {
+  const notes = t.notes && t.notes.trim();
+  const source = t.source && t.source.trim();
+  const bare = (x) => (x || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+  const showSource = source && bare(source) !== bare(t.title) && !bare(notes).includes(bare(source));
+  return [notes, showSource ? `<i>Dicté : « ${esc(source)} »</i>` : '']
+    .filter(Boolean)
+    .map((x, i) => (i === 0 && x === notes ? esc(x) : x))
+    .join('<br>');
+}
 
 function item(t) {
   const q = quadrantOf(t);
@@ -30,11 +46,12 @@ function item(t) {
       <button class="task-title" data-act="edit">${esc(t.title)}</button>
       <div class="task-meta">
         ${catChip(t)}
-        ${detailMark(t)}
+        ${detailBtn(t)}
         ${dateChip(t)}
         ${t.urgent ? '<button class="pill pill-u on" data-act="urgent" aria-pressed="true" title="Retirer « urgent »">Urgent</button>' : ''}
         ${t.important ? '<button class="pill pill-i on" data-act="important" aria-pressed="true" title="Retirer « important »">Important</button>' : ''}
       </div>
+      ${opened.has(t.id) ? `<p class="task-detail">${detailText(t)}</p>` : ''}
     </div>
     <span class="q-tag" title="${QUADS[q].label}">${QUADS[q].short}</span>
   </li>`;
@@ -100,6 +117,10 @@ export function renderList(root, tasks, ctx) {
     const id = btn.closest('[data-id]')?.dataset.id;
     const t = tasks.find((x) => x.id === id);
     if (!t) return;
+    if (btn.dataset.act === 'detail') {
+      opened.has(id) ? opened.delete(id) : opened.add(id);
+      return ctx.rerender();
+    }
     if (btn.dataset.act === 'done') ctx.update(id, { done: !t.done });
     if (btn.dataset.act === 'urgent') ctx.update(id, { urgent: !t.urgent });
     if (btn.dataset.act === 'important') ctx.update(id, { important: !t.important });
