@@ -147,7 +147,7 @@ export function renderGantt(root, tasks, ctx) {
 
   root.innerHTML = `
     <div class="gantt-toolbar">
-      <div class="seg"><button data-span="day">Jour</button>${SPANS.map((s) => `<button data-span="${s.days}" class="${s.days === span ? 'on' : ''}">${s.label}</button>`).join('')}</div>
+      <div class="seg">${SPANS.map((s) => `<button data-span="${s.days}" class="${s.days === span ? 'on' : ''}">${s.label}</button>`).join('')}</div>
       <div class="g-nav">
         <button class="icon-btn" data-nav="prev" aria-label="Période précédente">‹</button>
         <button class="btn ghost small" data-nav="today">Aujourd'hui</button>
@@ -202,10 +202,6 @@ export function renderGantt(root, tasks, ctx) {
       return ctx.rerender();
     }
     const spanBtn = e.target.closest('[data-span]');
-    if (spanBtn && spanBtn.dataset.span === 'day') {
-      state.day = today >= state.start && today <= last ? today : state.start;
-      return ctx.rerender();
-    }
     if (spanBtn) {
       state.span = Number(spanBtn.dataset.span);
       lsSet('proello.gantt.span', state.span);

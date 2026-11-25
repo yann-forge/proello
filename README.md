@@ -15,7 +15,7 @@ Une to-do list qu'on remplit **à la voix** et qu'on organise selon l'**urgence*
 - 🗑 **Corbeille** : une tâche supprimée reste récupérable 30 jours (menu ⋯ → Corbeille).
 - ✅ **Trois vues** :
   1. **Liste** : toutes les tâches triées par priorité, avec filtres.
-  2. **Planning** : un Gantt où l'on déplace et étire les tâches au doigt ou à la souris. Toucher un jour (ou « Jour ») ouvre la vue journée : tâches heure par heure, et celles sans horaire à côté. Les heures dictées (« à 14h », « de 9h à 11h », « pendant 1h30 ») sont reconnues.
+  2. **Planning** : un Gantt où l'on déplace et étire les tâches au doigt ou à la souris. Toucher un jour en haut du planning ouvre la vue journée : tâches heure par heure, et celles sans horaire à côté. Les heures dictées (« à 14h », « de 9h à 11h », « pendant 1h30 ») sont reconnues.
   3. **Matrice d'Eisenhower** : les 4 cadrans, avec glisser-déposer entre eux.
 - 📱 **Installable** sur téléphone et ordinateur (PWA), fonctionne hors ligne.
 - 💾 Les tâches sont enregistrées sur l'appareil ; export / import JSON depuis le menu.

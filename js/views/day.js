@@ -108,7 +108,6 @@ export function renderDay(root, tasks, ctx, nav) {
   root.innerHTML = `
     <div class="gantt-toolbar">
       <div class="seg">
-        <button data-span="day" class="on">Jour</button>
         ${nav.spans.map((s) => `<button data-span="${s.days}">${s.label}</button>`).join('')}
       </div>
       <div class="g-nav">
@@ -146,7 +145,7 @@ export function renderDay(root, tasks, ctx, nav) {
   root.onpointerdown = null;
   root.onclick = (e) => {
     const span = e.target.closest('[data-span]');
-    if (span) return span.dataset.span === 'day' ? null : nav.leave(Number(span.dataset.span));
+    if (span) return nav.leave(Number(span.dataset.span));
     const dn = e.target.closest('[data-day-nav]');
     if (dn) return nav.setDay(dn.dataset.dayNav === '0' ? todayISO() : addDays(day, Number(dn.dataset.dayNav)));
     const edit = e.target.closest('[data-edit]');
