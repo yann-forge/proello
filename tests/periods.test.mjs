@@ -94,7 +94,7 @@ test('les précisions dites dans une phrase à part vont à la bonne tâche', ()
 test('rapports #4 à #8 : heure, dates collées, « de la semaine prochaine », « A et B »', () => {
   // l'heure collée à la date part avec elle ; une heure seule reste dans le titre
   assert.deepEqual(p('envoyer le devis demain à 10h').map((t) => [t.title, t.end]), [['Envoyer devis', '2026-11-24']]);
-  assert.deepEqual(p('rendez vous à 11h chez le dentiste').map((t) => t.title), ['Rendez-vous 11h dentiste']);
+  assert.deepEqual(p('rendez vous à 11h chez le dentiste').map((t) => [t.title, t.time]), [['Rendez-vous chez dentiste', '11:00']]);
   // « demain mardi » = une seule date
   assert.deepEqual(w('demain mardi'), ['2026-11-24', '2026-11-24']);
   // jour de la semaine qualifié

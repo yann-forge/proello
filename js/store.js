@@ -36,7 +36,9 @@ function normalizeDates(t) {
   if (start && !end) end = start;
   if (end && !start) start = end;
   if (start && end && end < start) end = start;
-  return { ...t, start, end };
+  const time = t.time || null;
+  const endTime = time && t.endTime && t.endTime > time ? t.endTime : null;
+  return { ...t, start, end, time, endTime };
 }
 
 function make(input) {
@@ -50,6 +52,8 @@ function make(input) {
     doneAt: null,
     start: input.start || null,
     end: input.end || null,
+    time: input.time || null, // horaire « HH:MM », sur le dernier jour de la tâche
+    endTime: input.endTime || null,
     notes: input.notes || '',
     category: input.category || null, // identifiant de catégorie du profil (voir profiles.js)
     source: input.source || '', // texte dicté ou tapé d'origine

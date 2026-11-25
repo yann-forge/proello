@@ -1,17 +1,19 @@
 // Vue 1 : to-do list complète, triée par priorité
 
 import { QUADS, QUAD_ORDER, quadrantOf, sortTasks } from '../tasks.js';
-import { relLabel, todayISO } from '../dates.js';
+import { relLabel, todayISO, fmtTime } from '../dates.js';
 import { esc, lsGet, lsSet } from '../util.js';
 import { catChip } from '../profile-ui.js';
 
 const state = lsGet('proello.list', { filter: 'todo', quad: null });
 
 export function dateChip(t) {
-  if (!t.end) return '';
+  if (!t.end && !t.time) return '';
+  const time = t.time ? fmtTime(t.time, t.endTime) : '';
+  if (!t.end) return `<span class="date-chip">${time}</span>`;
   const late = !t.done && t.end < todayISO();
   const range = t.start && t.start !== t.end ? `${esc(relLabel(t.start))} → ` : '';
-  return `<span class="date-chip ${late ? 'late' : ''}">${late ? 'En retard · ' : ''}${range}${esc(relLabel(t.end))}</span>`;
+  return `<span class="date-chip ${late ? 'late' : ''}">${late ? 'En retard · ' : ''}${range}${esc(relLabel(t.end))}${time ? ` · ${time}` : ''}</span>`;
 }
 
 /** Petit symbole indiquant qu'un détail (texte dicté, notes) est disponible en ouvrant la tâche. */

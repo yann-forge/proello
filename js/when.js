@@ -249,7 +249,76 @@ const DURATION = rx(`(?:pendant|durant|sur|en)\\s+(${NUM})\\s+(jours?|semaines?)
  * Extrait la période d'une phrase.
  * @returns {{ text: string, start: string|null, end: string|null, repeats: string[] }}
  */
+/* ---------- heures : « à 14h », « 14h30 », « vers 10 heures », « de 14h à 16h », « pendant 2 heures » ---------- */
+
+const T = "(\\d{1,2})\\s*(?:heures?|h)(?:\\s*(\\d{2}))?(?:\\s+et\\s+(demie?|quart))?|midi|minuit";
+const reT = (body) => new RegExp(`(?<![\\p{L}\\d'’])(?:${body})(?![\\p{L}\\d])`, 'iu');
+const TIME_RANGE = reT(`(?:de|entre)\\s+(?:${T.replace(/\((?!\?)/g, '(?:')})\\s+(?:à|a|et|jusqu['’]à)\\s+(?:${T.replace(/\((?!\?)/g, '(?:')})`);
+const TIME_ONE = reT(`(?:(?:à|a|vers|dès|pour|avant)\\s+)?(?:${T})`);
+const TIME_DURATION = reT(`(?:pendant|durant|sur)\\s+(?:(\\d{1,2})\\s*h\\s*(\\d{2})|(${NUM}|une demi)\\s*(heures?|h|minutes?|min))`);
+
+const pad2 = (n) => String(n).padStart(2, '0');
+/** « 14h30 » → '14:30', « midi » → '12:00', « 9 heures et quart » → '09:15' ; null si invalide. */
+function parseTime(s) {
+  const t = s.toLowerCase().trim();
+  if (/midi/.test(t)) return '12:00';
+  if (/minuit/.test(t)) return '00:00';
+  const m = t.match(/(\d{1,2})\s*(?:heures?|h)(?:\s*(\d{2}))?(?:\s+et\s+(demie?|quart))?/);
+  if (!m) return null;
+  const h = Number(m[1]);
+  let min = m[2] ? Number(m[2]) : 0;
+  if (m[3]) min = m[3].startsWith('demi') ? 30 : 15;
+  if (h > 23 || min > 59) return null;
+  return `${pad2(h)}:${pad2(min)}`;
+}
+const addMinutes = (hhmm, mins) => {
+  const total = Math.min(23 * 60 + 59, Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3)) + mins);
+  return `${pad2(Math.floor(total / 60))}:${pad2(total % 60)}`;
+};
+
+/**
+ * Extrait l'horaire d'une phrase (et le retire du texte).
+ * @returns {{ text: string, time: string|null, endTime: string|null }}
+ */
+export function extractTime(text) {
+  let time = null;
+  let endTime = null;
+  let out = text;
+  const range = out.match(TIME_RANGE);
+  if (range) {
+    const parts = range[0].replace(/^(?:de|entre)\s+/i, '').split(/\s+(?:à|a|et|jusqu['’]à)\s+/i);
+    time = parseTime(parts[0]);
+    endTime = parseTime(parts[1] || '');
+    if (time) out = out.slice(0, range.index) + ' ' + out.slice(range.index + range[0].length);
+  }
+  if (!time) {
+    const one = out.match(TIME_ONE);
+    // une heure seule (« 2 heures ») sans « à / vers » et sans « h » collé est plutôt une durée
+    if (one && (/^(?:à|a|vers|dès|pour|avant)\s/i.test(one[0]) || /\d\s*h(?![\p{L}])|\dh\d|midi|minuit/iu.test(one[0]))) {
+      time = parseTime(one[0]);
+      if (time) out = out.slice(0, one.index) + ' ' + out.slice(one.index + one[0].length);
+    }
+  }
+  if (time && !endTime) {
+    const d = out.match(TIME_DURATION);
+    if (d) {
+      let mins;
+      if (d[1]) mins = Number(d[1]) * 60 + Number(d[2]);
+      else {
+        const n = /demi/i.test(d[3]) ? 0.5 : toNumber(d[3]);
+        mins = /^m/i.test(d[4]) ? n : n * 60;
+      }
+      endTime = addMinutes(time, Math.round(mins));
+      out = out.slice(0, d.index) + ' ' + out.slice(d.index + d[0].length);
+    }
+  }
+  if (endTime && time && endTime <= time) endTime = null;
+  return { text: out, time, endTime };
+}
+
 export function extractWhen(text, now = new Date()) {
+  const clock = extractTime(text);
+  text = clock.text;
   const dates = findDates(text, now);
   const cuts = [];
   let start = null;
@@ -334,5 +403,12 @@ export function extractWhen(text, now = new Date()) {
 
   let out = text;
   for (const [x, y] of cuts.sort((p, q) => q[0] - p[0])) out = out.slice(0, x) + ' ' + out.slice(y);
-  return { text: out, start: start && toISO(start), end: end && toISO(end), repeats: repeats.map(toISO) };
+  return {
+    text: out,
+    start: start && toISO(start),
+    end: end && toISO(end),
+    repeats: repeats.map(toISO),
+    time: clock.time,
+    endTime: clock.endTime,
+  };
 }

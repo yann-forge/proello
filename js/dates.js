@@ -29,6 +29,13 @@ const fmtWeekdayShort = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day
 
 export const fmtShort = (iso) => fmtDay.format(fromISO(iso));
 
+/** '09:30' → '9h30', '14:00' → '14h' ; avec une fin : '14h–16h'. */
+export const fmtTime = (time, endTime) => {
+  if (!time) return '';
+  const one = (t) => { const [h, m] = t.split(':'); return `${Number(h)}h${m === '00' ? '' : m}`; };
+  return endTime ? `${one(time)}–${one(endTime)}` : one(time);
+};
+
 /** Libellé lisible : « Aujourd'hui », « Demain », « jeudi », « 12 déc. »… */
 export function relLabel(iso) {
   const n = diffDays(todayISO(), iso);

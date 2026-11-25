@@ -4,7 +4,8 @@
 // - les barres se déplacent / s'étirent au doigt ou à la souris.
 
 import { QUADS, QUAD_ORDER, quadrantOf, sortTasks } from '../tasks.js';
-import { todayISO, addDays, diffDays, fromISO, fmtShort } from '../dates.js';
+import { todayISO, addDays, diffDays, fromISO, fmtShort, fmtTime } from '../dates.js';
+import { renderDay, legendHtml } from './day.js';
 import { esc, lsGet, lsSet } from '../util.js';
 
 const SPANS = [
@@ -14,9 +15,7 @@ const SPANS = [
 ];
 const WD = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 const fmtMonth = new Intl.DateTimeFormat('fr-FR', { month: 'short' });
-const state = { start: null, span: lsGet('proello.gantt.span', 14) };
-// libellés de la légende propres au planning (même ordre que la matrice : 2 × 2)
-const LEGEND = { later: 'Si tu as le temps' };
+const state = { start: null, span: lsGet('proello.gantt.span', 14), day: null }; // day : vue journée ouverte
 
 const LANE_H = 40; // hauteur d'une ligne
 const BAR_H = 30;
@@ -45,7 +44,7 @@ function layout(tasks, span, dayW) {
     const b = Math.min(e, span - 1);
     const left = a * dayW + 3;
     const width = Math.max(b - a + 1, 1) * dayW - 6;
-    const label = textWidth(t.title, 800);
+    const label = textWidth(barLabel(t), 800);
     let mode = 'in';
     let occL = left;
     let occR = left + width;
@@ -75,8 +74,25 @@ function layout(tasks, span, dayW) {
 
 const barStyle = (left, width, lane) => `left:${left}px;width:${width}px;top:${PAD + lane * LANE_H + (LANE_H - BAR_H) / 2}px`;
 
+const barLabel = (t) => (t.time ? `${fmtTime(t.time)} · ${t.title}` : t.title);
+
 export function renderGantt(root, tasks, ctx) {
   const today = todayISO();
+  // vue journée (heure par heure)
+  if (state.day) {
+    return renderDay(root, tasks, ctx, {
+      day: state.day,
+      spans: SPANS,
+      setDay: (d) => ((state.day = d), ctx.rerender()),
+      leave: (span) => {
+        state.start = addDays(state.day, -1);
+        state.span = span;
+        state.day = null;
+        lsSet('proello.gantt.span', span);
+        ctx.rerender();
+      },
+    });
+  }
   if (!state.start) state.start = addDays(today, -1);
   const span = state.span;
   const spanDef = SPANS.find((s) => s.days === span) || SPANS[1];
@@ -98,7 +114,7 @@ export function renderGantt(root, tasks, ctx) {
       const dt = fromISO(d);
       const wd = dt.getDay();
       const month = i === 0 || dt.getDate() === 1 ? `<em>${fmtMonth.format(dt)}</em>` : '';
-      return `<div class="g-day ${wd === 0 || wd === 6 ? 'we' : ''} ${d === today ? 'today' : ''}">${month}<span>${WD[wd]}</span><b>${dt.getDate()}</b></div>`;
+      return `<button class="g-day ${wd === 0 || wd === 6 ? 'we' : ''} ${d === today ? 'today' : ''}" data-day="${d}" aria-label="Voir la journée du ${fmtShort(d)}">${month}<span>${WD[wd]}</span><b>${dt.getDate()}</b></button>`;
     })
     .join('');
 
@@ -114,7 +130,7 @@ export function renderGantt(root, tasks, ctx) {
       ({ t, s, e, left, width, mode, lane }) => `<div class="g-bar q-${quadrantOf(t)} lbl-${mode} ${t.done ? 'is-done' : ''} ${s < 0 ? 'clip-l' : ''} ${
         e > span - 1 ? 'clip-r' : ''
       }" data-id="${t.id}" data-lane="${lane}" style="${barStyle(left, width, lane)}" title="${esc(t.title)}">
-        <i class="g-handle l"></i><span class="g-label">${esc(t.title)}</span><i class="g-handle r"></i>
+        <i class="g-handle l"></i><span class="g-label">${esc(barLabel(t))}</span><i class="g-handle r"></i>
       </div>`
     )
     .join('');
@@ -131,7 +147,7 @@ export function renderGantt(root, tasks, ctx) {
 
   root.innerHTML = `
     <div class="gantt-toolbar">
-      <div class="seg">${SPANS.map((s) => `<button data-span="${s.days}" class="${s.days === span ? 'on' : ''}">${s.label}</button>`).join('')}</div>
+      <div class="seg"><button data-span="day">Jour</button>${SPANS.map((s) => `<button data-span="${s.days}" class="${s.days === span ? 'on' : ''}">${s.label}</button>`).join('')}</div>
       <div class="g-nav">
         <button class="icon-btn" data-nav="prev" aria-label="Période précédente">‹</button>
         <button class="btn ghost small" data-nav="today">Aujourd'hui</button>
@@ -139,9 +155,7 @@ export function renderGantt(root, tasks, ctx) {
       </div>
       <span class="range-label">${fmtShort(state.start)} – ${fmtShort(last)}</span>
     </div>
-    <ul class="g-legend" aria-label="Légende des couleurs">
-      ${QUAD_ORDER.map((k) => `<li class="q-${k}"><i></i>${LEGEND[k] || QUADS[k].label}</li>`).join('')}
-    </ul>
+    ${legendHtml()}
     <div class="gantt" style="--day-w:${dayW}px;--days:${span}">
       <div class="g-inner">
         <div class="g-head">${head}</div>
@@ -182,7 +196,16 @@ export function renderGantt(root, tasks, ctx) {
   if (prevScroll != null) root.querySelector('.gantt').scrollLeft = prevScroll;
 
   root.onclick = (e) => {
+    const dayBtn = e.target.closest('[data-day]');
+    if (dayBtn) {
+      state.day = dayBtn.dataset.day;
+      return ctx.rerender();
+    }
     const spanBtn = e.target.closest('[data-span]');
+    if (spanBtn && spanBtn.dataset.span === 'day') {
+      state.day = today >= state.start && today <= last ? today : state.start;
+      return ctx.rerender();
+    }
     if (spanBtn) {
       state.span = Number(spanBtn.dataset.span);
       lsSet('proello.gantt.span', state.span);

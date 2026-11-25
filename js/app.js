@@ -5,7 +5,7 @@ import { parseDictation } from './parser.js';
 import { summarize, MAX_WORDS } from './summarize.js';
 import { startDictation, voiceSupported, VOICE_ERRORS } from './voice.js';
 import { QUADS, quadrantOf } from './tasks.js';
-import { relLabel, todayISO, toLocalStamp } from './dates.js';
+import { relLabel, todayISO, toLocalStamp, fmtTime } from './dates.js';
 import { openReport, initReport } from './report.js';
 import { $, esc, lsGet, lsSet, uid } from './util.js';
 import { renderList } from './views/list.js';
@@ -236,6 +236,8 @@ function reviewRow(t) {
   const li = document.createElement('li');
   li.dataset.start = t.start || '';
   li.dataset.end = t.end || '';
+  li.dataset.time = t.time || '';
+  li.dataset.endTime = t.endTime || '';
   li.dataset.notes = t.notes || '';
   li.innerHTML = `
     <input class="rv-title" value="${esc(t.title)}" aria-label="Titre court" maxlength="80" />
@@ -244,7 +246,7 @@ function reviewRow(t) {
     <div class="rv-meta">
       <button type="button" class="pill pill-u ${t.urgent ? 'on' : ''}" data-flag="urgent" aria-pressed="${!!t.urgent}">Urgent</button>
       <button type="button" class="pill pill-i ${t.important ? 'on' : ''}" data-flag="important" aria-pressed="${!!t.important}">Important</button>
-      ${t.end ? `<span class="date-chip">${esc(t.start && t.start !== t.end ? relLabel(t.start) + ' → ' : '')}${esc(relLabel(t.end))}</span>` : ''}
+      ${t.end || t.time ? `<span class="date-chip">${t.end ? esc(t.start && t.start !== t.end ? relLabel(t.start) + ' → ' : '') + esc(relLabel(t.end)) : ''}${t.time ? (t.end ? ' · ' : '') + fmtTime(t.time, t.endTime) : ''}</span>` : ''}
       <button type="button" class="rv-del" aria-label="Retirer">✕</button>
     </div>`;
   return li;
@@ -311,6 +313,8 @@ $('#review').addEventListener('close', () => {
     category: li.querySelector('.rv-cat').value || null,
     start: li.dataset.start || null,
     end: li.dataset.end || null,
+    time: li.dataset.time || null,
+    endTime: li.dataset.endTime || null,
     notes: li.dataset.notes || '',
   }));
   const created = store.add(withSource(items, reviewSource, reviewAt));
@@ -342,6 +346,8 @@ function openEditor(id) {
   form.important.checked = t.important;
   form.start.value = t.start || '';
   form.end.value = t.end || '';
+  form.time.value = t.time || '';
+  form.endTime.value = t.endTime || '';
   form.notes.value = t.notes || '';
   form.done.checked = t.done;
   form.category.innerHTML = categoryOptions(t.category);
@@ -361,6 +367,8 @@ $('#editor').addEventListener('close', () => {
     important: form.important.checked,
     start: form.start.value || null,
     end: form.end.value || null,
+    time: form.time.value || null,
+    endTime: form.time.value && form.endTime.value > form.time.value ? form.endTime.value : null,
     notes: form.notes.value,
     category: form.category.value || null,
   };

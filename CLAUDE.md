@@ -16,7 +16,9 @@ L'utilisateur écrit en français : répondre en français, et garder l'interfac
 ## Où est quoi
 
 - `js/parser.js` : découpe une dictée en tâches, urgent / important, rattache les phrases de précision, reprises de dictée.
-- `js/when.js` : dates, périodes (« entre A et B », « du A au B »), échéances (« pour vendredi »), durées.
+- `js/when.js` : dates, périodes (« entre A et B », « du A au B »), échéances (« avant vendredi »), durées,
+  et horaires (`extractTime` : « à 14h », « de 9h à 11h », « pendant 1h30 »).
+- `js/views/day.js` : vue journée du planning (agenda heure par heure + colonne « Sans horaire »).
 - `js/summarize.js` : titre court (4 mots maximum).
 - `js/themes.js` : thème commun entre tâches d'une même dictée (lexique de thèmes + tâches de suivi « bilan », « rapport »…).
 - `js/profiles.js` : les 8 profils prédéfinis et leurs catégories ; profils modifiés ou créés par l'utilisateur.
