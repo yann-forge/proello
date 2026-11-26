@@ -71,7 +71,6 @@ export function renderGantt(root, tasks, ctx) {
   const oldTop = old ? old.scrollTop : 0;
   if (!old) document.body.classList.remove('g-focus'); // on arrive sur le planning : tout est visible
   const compact = lsGet('proello.gantt.compact', false);
-  const closed = lsGet('proello.gantt.closed', {}); // groupes repliés
   if (!state.view) state.view = addDays(today, -1);
   const zoom = 14; // jours visibles sur grand écran ; sur téléphone, la largeur minimale d'un jour l'emporte
   const step = 7; // ‹ › : une semaine
@@ -144,20 +143,7 @@ export function renderGantt(root, tasks, ctx) {
       </div>`;
   };
 
-  // lignes regroupées par moment, chaque groupe se replie ; l'ordre de sortPlanning est gardé dans chaque groupe
-  const weekEnd = addDays(today, 7);
-  const GROUPS = [
-    ['today', 'Aujourd’hui, en cours ou en retard', (t) => !t.done && t.start <= today],
-    ['week', 'Les 7 prochains jours', (t) => !t.done && t.start > today && t.start <= weekEnd],
-    ['later', 'Plus tard', (t) => !t.done && t.start > weekEnd],
-  ];
-  const rowsHtml = GROUPS.map(([k, label, inGroup]) => {
-    const g = rows.filter(inGroup);
-    if (!g.length) return '';
-    const shut = !!closed[k];
-    return `<div class="g-group"><button class="g-group-btn" data-group="${k}" aria-expanded="${!shut}">
-        <span class="g-caret">${shut ? '▸' : '▾'}</span>${label}<small>${g.length}</small></button></div>${shut ? '' : g.map(rowHtml).join('')}`;
-  }).join('');
+  const rowsHtml = rows.map(rowHtml).join('');
 
   const todayIdx = diffDays(state.start, today);
 
@@ -233,7 +219,7 @@ export function renderGantt(root, tasks, ctx) {
     addEventListener('scroll', () => document.body.dataset.view === 'gantt' && !state.day && winY(scrollY), { passive: true });
   }
   winY.reset(scrollY);
-  // revenu tout en haut (ex. après avoir replié un groupe) : on réaffiche tout
+  // revenu tout en haut (ex. après un changement d'affichage) : on réaffiche tout
   if (box.scrollTop < 8 && scrollY < 8) document.body.classList.remove('g-focus');
   const scrollToDay = (d) => box.scrollTo({ left: Math.max(0, diffDays(from, d)) * dayW, behavior: 'smooth' });
 
@@ -241,12 +227,6 @@ export function renderGantt(root, tasks, ctx) {
     const dayBtn = e.target.closest('[data-day]');
     if (dayBtn) {
       state.day = dayBtn.dataset.day;
-      return ctx.rerender();
-    }
-    const grp = e.target.closest('[data-group]');
-    if (grp) {
-      closed[grp.dataset.group] = !closed[grp.dataset.group];
-      lsSet('proello.gantt.closed', closed);
       return ctx.rerender();
     }
     if (e.target.closest('[data-compact]')) {
