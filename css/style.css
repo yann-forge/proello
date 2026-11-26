@@ -681,7 +681,7 @@ button.g-day:hover b { color: var(--orange-ink); }
 
 @media (max-width: 760px) {
   .day { gap: 6px; }
-  body[data-view='gantt'] main { padding-bottom: calc(96px + var(--safe-b)); }
+  body[data-view='gantt'] main { padding-bottom: calc(170px + var(--safe-b)); }
   .day-untimed { padding: 8px 6px; }
   .day-card { padding: 6px 7px; }
   .day-card span { font-size: 0.74rem; }
@@ -736,3 +736,42 @@ button.g-day:hover b { color: var(--orange-ink); }
 .recent-list span { display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; min-width: 0; }
 .recent-list small { color: var(--muted); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .recent-list li:has(input:checked) label { background: #fde4dc; }
+
+/* ---------- Fiche : réglages avancés (🔧) ---------- */
+.more-btn {
+  display: flex; align-items: center; gap: 12px; width: 100%; margin: 6px 0 2px; padding: 10px 12px; text-align: left;
+  border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface-2); color: var(--ink);
+}
+.more-btn svg { width: 24px; height: 24px; flex: none; color: var(--sand-ink); }
+.more-btn span { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.more-btn b { font-size: 0.92rem; }
+.more-btn small { font-size: 0.78rem; font-weight: 700; color: var(--muted); }
+.more-btn.has-settings small { color: #6a4fa3; }
+.more-btn i { font-style: normal; font-size: 1.3rem; color: var(--muted); transition: transform 0.15s; }
+.more-btn[aria-expanded='true'] i { transform: rotate(90deg); }
+.more-panel { display: grid; gap: 10px; padding: 12px; margin-bottom: 4px; border-radius: var(--radius-sm); border: 1px dashed var(--sand-strong); }
+.more-panel > p { margin: 0; }
+.more-panel .link { justify-self: start; }
+.more-panel [hidden] { display: none !important; }
+
+/* ---------- Types de prestation ---------- */
+.types-list { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 6px; }
+.types-list li[data-type] { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 8px; padding: 8px 6px 8px 10px; border-radius: 10px; background: var(--surface-2); }
+.types-list li input { font: inherit; font-weight: 800; border: 0; background: transparent; padding: 2px 0; min-width: 0; }
+.types-list li small { grid-column: 1; font-size: 0.76rem; color: var(--muted); font-weight: 700; }
+.types-list li .icon-btn { grid-column: 2; grid-row: 1 / 3; }
+.types-add { display: flex; gap: 8px; }
+.types-add input { flex: 1; min-width: 0; font: inherit; padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--line); }
+.type-ideas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+.chip-btn { padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-size: 0.82rem; font-weight: 700; }
+.tpl-group { margin: 12px 0 6px; font-size: 0.85rem; color: var(--sand-ink); }
+
+/* le lien « N tâches plus tard » ne doit pas finir sous le bouton micro */
+.g-outside { margin: 0 0 8px; }
+.more-panel select {
+  width: 100%; min-width: 0; height: 44px; padding: 0 10px; border-radius: var(--radius-sm); border: 1px solid var(--line);
+  background: var(--surface-2); font-weight: 700; outline: none; text-overflow: ellipsis;
+}
+.more-panel select:focus { border-color: var(--orange-strong); box-shadow: 0 0 0 4px var(--orange-soft); }
+.more-panel .field { margin-top: 0; min-width: 0; }
+.more-panel .row2 { margin: 0; }

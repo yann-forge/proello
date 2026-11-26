@@ -1,7 +1,8 @@
 // Tâches répétées et modèles « pour chaque prestation » : `node --test tests/`
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nextOccurrence, occurrences, describeRepeat, eventOffset, missingForEvent, placeRepeat, findRepeat } from '../js/repeat.js';
+import { nextOccurrence, occurrences, describeRepeat, eventOffset, missingForEvent, staleForEvent, placeRepeat, findRepeat } from '../js/repeat.js';
+import { deNoun } from '../js/event-types.js';
 import { parseDictation } from '../js/parser.js';
 
 const now = new Date(2026, 10, 26, 10, 0); // jeudi 26 novembre 2026
@@ -85,4 +86,21 @@ test('stockage : une tâche répétée cochée passe à la fois suivante', async
   assert.deepEqual([u.done, u.start], [true, '2026-12-14']);
   const [tpl] = store.add([{ title: 'Brief', start: '2026-12-07', perEvent: { from: -30, to: -15 } }]);
   assert.equal(tpl.start, null); // un modèle n'a pas de date propre
+});
+
+test('types de prestation : chaque type a ses tâches, plus celles de tous les types', () => {
+  const tous = { id: 'f', title: 'Envoyer la facture', perEvent: { from: 1, to: 3, type: null } };
+  const mariage = { id: 'b', title: 'Brief avec les mariés', perEvent: { from: -30, to: -15, type: 'mar' } };
+  const concert = { id: 'r', title: 'Envoyer la fiche technique', perEvent: { from: -10, to: -10, type: 'con' } };
+  const ev = { id: 'm', title: 'Mariage Julie', event: true, eventType: 'mar', start: '2027-06-12', end: '2027-06-12' };
+  const all = [tous, mariage, concert, ev];
+  assert.deepEqual(missingForEvent(ev, all).map((t) => t.title).sort(), ['Brief avec les mariés', 'Envoyer la facture']);
+  assert.deepEqual(missingForEvent({ ...ev, eventType: 'con' }, all).map((t) => t.title).sort(), ['Envoyer la facture', 'Envoyer la fiche technique']);
+  assert.deepEqual(missingForEvent({ ...ev, eventType: null }, all).map((t) => t.title), ['Envoyer la facture']);
+  // la prestation devient un concert : le brief des mariés (pas encore fait) ne va plus
+  const copies = missingForEvent(ev, all).map((t, i) => ({ ...t, id: `c${i}` }));
+  const asConcert = { ...ev, eventType: 'con' };
+  assert.deepEqual(staleForEvent(asConcert, [...all, ...copies]).map((t) => t.title), ['Brief avec les mariés']);
+  assert.equal(staleForEvent({ ...ev, event: false }, [...all, ...copies]).length, 2);
+  assert.deepEqual([deNoun('prestation'), deNoun('événement')], ['de prestation', 'd’événement']);
 });

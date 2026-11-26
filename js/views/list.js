@@ -5,11 +5,29 @@ import { relLabel, todayISO, fmtTime } from '../dates.js';
 import { esc, lsGet, lsSet } from '../util.js';
 import { catChip } from '../profile-ui.js';
 import { describeRepeat, describeOffsets } from '../repeat.js';
+import { eventTypes, eventNoun, deNoun, cap } from '../event-types.js';
+
+const forEach = (t) => (t.perEvent.type && eventTypes.name(t.perEvent.type).toLowerCase()) || eventNoun();
 
 const state = lsGet('proello.list', { filter: 'todo', quad: null });
 
+/** Modèles regroupés par type de prestation (« Tous les types » d'abord). */
+function tplGroups(templates) {
+  const groups = new Map([['', []]]);
+  for (const t of templates) {
+    const k = eventTypes.get(t.perEvent.type) ? t.perEvent.type : '';
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(t);
+  }
+  const multi = [...groups.values()].filter((g) => g.length).length > 1 || !groups.get('').length;
+  return [...groups]
+    .filter(([, g]) => g.length)
+    .map(([k, g]) => `${multi ? `<h4 class="tpl-group">${k ? esc(eventTypes.name(k)) : 'Tous les types'}</h4>` : ''}<ul class="task-list">${sortTasks(g).map(item).join('')}</ul>`)
+    .join('');
+}
+
 export function dateChip(t) {
-  if (t.perEvent) return `<span class="date-chip tpl">Pour chaque prestation · ${describeOffsets(t.perEvent)}</span>`;
+  if (t.perEvent) return `<span class="date-chip tpl">Pour chaque ${esc(forEach(t))} · ${describeOffsets(t.perEvent)}</span>`;
   if (t.repeat && t.end) {
     const late = !t.done && t.end < todayISO();
     const time = t.time ? ` ${fmtTime(t.time, t.endTime)}` : '';
@@ -53,7 +71,7 @@ function item(t) {
       <button class="task-title" data-act="edit">${esc(t.title)}</button>
       <div class="task-meta">
         ${catChip(t)}
-        ${t.event ? '<span class="event-chip" title="Prestation : déclenche les tâches « pour chaque prestation »">★ Prestation</span>' : ''}
+        ${t.event ? `<span class="event-chip" title="Date ${deNoun()} : prépare ses tâches">★ ${esc(eventTypes.name(t.eventType) || cap(eventNoun()))}</span>` : ''}
         ${detailBtn(t)}
         ${dateChip(t)}
         ${
@@ -118,9 +136,9 @@ export function renderList(root, all, ctx) {
     ${
       templates.length && state.filter !== 'done'
         ? `<details class="tpl-section" ${state.tplOpen ? 'open' : ''}>
-            <summary>Pour chaque prestation <small>${templates.length}</small></summary>
-            <p class="muted small">Modèles sans date : ils sont copiés et datés automatiquement pour chaque tâche marquée « Prestation ».</p>
-            <ul class="task-list">${sortTasks(templates).map(item).join('')}</ul>
+            <summary>À préparer pour chaque ${esc(eventNoun())} <small>${templates.length}</small></summary>
+            <p class="muted small">Sans date : elles sont copiées et datées automatiquement autour de chaque date ${esc(deNoun())} (🔧 dans la fiche).</p>
+            ${tplGroups(templates)}
           </details>`
         : ''
     }

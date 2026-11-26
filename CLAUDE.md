@@ -28,6 +28,8 @@ L'utilisateur écrit en français : répondre en français, et garder l'interfac
   doublons, modèle CSV ; fenêtre « Importer des tâches » dans `app.js`.
 - `js/repeat.js` : tâches répétées (`repeat` : jour / semaine / mois, jours, `until` ; `start` = prochaine occurrence,
   cochée → occurrence suivante dans `store.update`) et modèles `perEvent` copiés pour chaque tâche `event` (prestation).
+- `js/event-types.js` : types de prestation (`eventType` sur la prestation, `perEvent.type` sur le modèle ; modèle sans type = tous)
+  et mot employé selon le profil (prestation, mission, compétition…). Réglages avancés de la fiche derrière le bouton 🔧.
 - `js/report.js` : formulaire « Signaler une erreur » → fiche GitHub pré-remplie dans le dépôt privé.
 - `tests/` : `parser`, `periods`, `themes`, `categories`, `store`, `import`, `repeat`, `conflicts` (phrases pièges entre règles)
   et `reports.test.mjs` (alimenté par `tests/reports.json`). Toute nouvelle règle doit garder `conflicts.test.mjs` au vert.

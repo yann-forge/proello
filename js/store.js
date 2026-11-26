@@ -64,6 +64,7 @@ function make(input) {
     repeat: withAnchor(input.repeat, input.start), // répétition (voir repeat.js) ; start/end = prochaine occurrence
     perEvent: input.perEvent || null, // modèle « pour chaque prestation » : { from, to } en jours
     event: !!input.event, // prestation : déclenche les modèles
+    eventType: input.eventType || null, // type de prestation (Mariage, Concert…), voir event-types.js
     fromTemplate: input.fromTemplate || null, // copie d'un modèle…
     forEvent: input.forEvent || null, // … pour cette prestation
     createdAt: now,

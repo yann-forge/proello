@@ -176,11 +176,23 @@ export function fromTemplate(tpl, ev) {
   };
 }
 
+/** Le modèle s'applique-t-il à cette prestation ? (modèle sans type : à toutes ; sinon : au même type) */
+export const appliesTo = (tpl, ev) => !!tpl.perEvent && (!tpl.perEvent.type || tpl.perEvent.type === ev.eventType);
+
 /** Copies à créer pour une prestation (celles qui n'existent pas encore). */
 export function missingForEvent(ev, all) {
   if (!ev.event || !ev.start) return [];
   const done = new Set(all.filter((t) => t.forEvent === ev.id).map((t) => t.fromTemplate));
-  return all.filter((t) => t.perEvent && !t.deletedAt && !done.has(t.id)).map((tpl) => fromTemplate(tpl, ev));
+  return all.filter((t) => appliesTo(t, ev) && !t.deletedAt && !done.has(t.id)).map((tpl) => fromTemplate(tpl, ev));
+}
+
+/** Copies pas encore faites dont le modèle ne s'applique plus (type de prestation changé, plus une prestation). */
+export function staleForEvent(ev, all) {
+  return all.filter((c) => {
+    if (c.forEvent !== ev.id || c.done || c.deletedAt) return false;
+    const tpl = all.find((x) => x.id === c.fromTemplate);
+    return !ev.event || !tpl || !appliesTo(tpl, ev);
+  });
 }
 
 const fmtOff = (n) => (n === 0 ? 'jour J' : `J${n < 0 ? '−' : '+'}${Math.abs(n)}`);

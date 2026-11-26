@@ -129,23 +129,6 @@
             <label class="field"><span>Fin</span><input type="time" name="endTime" /></label>
           </div>
         </div>
-        <div class="row2" id="editorRepeat">
-          <label class="field"><span>Répéter</span>
-            <select name="repeat">
-              <option value="">Jamais</option>
-              <option value="day">Chaque jour</option>
-              <option value="week">Chaque semaine</option>
-              <option value="month">Chaque mois</option>
-            </select>
-          </label>
-          <label class="field" id="editorUntil"><span>Jusqu'au</span><input type="date" name="until" /></label>
-        </div>
-        <div id="editorTpl" class="row2" hidden>
-          <label class="field"><span>Du jour (J−30 = -30)</span><input type="number" name="tplFrom" min="-365" max="365" step="1" /></label>
-          <label class="field"><span>Au jour (J+7 = 7)</span><input type="number" name="tplTo" min="-365" max="365" step="1" /></label>
-        </div>
-        <label class="check-row" id="editorEventRow"><input type="checkbox" name="event" /> ★ Prestation <small class="muted">(prépare les tâches « pour chaque prestation »)</small></label>
-        <label class="check-row"><input type="checkbox" name="template" /> Modèle « pour chaque prestation » <small class="muted">(sans date)</small></label>
         <label class="field"><span>Détail</span><textarea name="notes" rows="4" placeholder="Ce que tu as dicté, des liens, des personnes…"></textarea></label>
         <details id="editorSource" class="source-box" hidden>
           <summary>🎙 Dictée d'origine <small id="editorSourceCount"></small></summary>
@@ -155,6 +138,43 @@
           <ol id="editorSiblings" class="siblings"></ol>
         </details>
         <label class="check-row"><input type="checkbox" name="done" /> Terminée</label>
+
+        <!-- Réglages avancés : répétition, prestations et modèles -->
+        <button type="button" id="editorMoreBtn" class="more-btn" aria-expanded="false" aria-controls="editorMore">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+            <path d="M18 13.5l3 1.75v3.5L18 20.5l-3-1.75v-3.5z" /><circle cx="18" cy="17" r="1" />
+          </svg>
+          <span><b>Réglages avancés</b><small id="editorMoreSum">Répétition, date de prestation, modèle</small></span>
+          <i aria-hidden="true">›</i>
+        </button>
+        <div id="editorMore" class="more-panel" hidden>
+          <div class="row2" id="editorRepeat">
+            <label class="field"><span>Répéter</span>
+              <select name="repeat">
+                <option value="">Jamais</option>
+                <option value="day">Chaque jour</option>
+                <option value="week">Chaque semaine</option>
+                <option value="month">Chaque mois</option>
+              </select>
+            </label>
+            <label class="field" id="editorUntil"><span>Jusqu'au</span><input type="date" name="until" /></label>
+          </div>
+          <label class="field"><span>Genre de tâche</span>
+            <select name="kind" id="editorKind"></select>
+          </label>
+          <div class="row2" id="editorTypeRow">
+            <label class="field"><span id="editorTypeLabel">Type</span><select name="eventType" id="editorType"></select></label>
+            <label class="field" id="editorNewType" hidden><span>Nom du nouveau type</span><input name="newType" placeholder="Ex. : Mariage" /></label>
+          </div>
+          <div id="editorTpl" class="row2" hidden>
+            <label class="field"><span>Du jour (J−30 = -30)</span><input type="number" name="tplFrom" min="-365" max="365" step="1" /></label>
+            <label class="field"><span>Au jour (J+7 = 7)</span><input type="number" name="tplTo" min="-365" max="365" step="1" /></label>
+          </div>
+          <p id="editorKindHint" class="muted small"></p>
+          <button type="button" id="editorTypesBtn" class="link muted-link">Gérer les types et le mot utilisé</button>
+        </div>
+
         <button type="button" id="editorReport" class="link muted-link">⚑ Signaler une erreur de compréhension</button>
         <footer>
           <button type="button" id="editorDelete" class="btn danger">Supprimer</button>
@@ -174,6 +194,7 @@
           <button type="button" id="profileBtn" class="menu-item">👤 Profil et catégories <small id="profileLabel" class="muted"></small></button>
           <button type="button" id="exportBtn" class="menu-item">⬆︎ Exporter une sauvegarde (JSON)</button>
           <button type="button" id="importBtn" class="menu-item">⬇︎ Importer des tâches <small class="muted">(tableau, liste, sauvegarde)</small></button>
+          <button type="button" id="typesMenuBtn" class="menu-item">★ Types de prestation et modèles</button>
           <button type="button" id="recentBtn" class="menu-item">↶ Retirer des tâches ajoutées récemment</button>
           <button type="button" id="trashBtn" class="menu-item">🗑 Corbeille <small id="trashCount" class="muted"></small></button>
           <button type="button" id="clearDoneBtn" class="menu-item">✓ Mettre les tâches terminées à la corbeille</button>
@@ -237,6 +258,30 @@
         <footer>
           <button type="button" id="trashEmpty" class="btn danger small">Vider la corbeille</button>
           <button value="close" class="btn primary">Fermer</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <!-- Types de prestation et mot utilisé (prestation, événement, mission…) -->
+    <dialog id="typesDlg" class="sheet">
+      <form method="dialog">
+        <header>
+          <h2 id="typesTitle">Types de prestation</h2>
+          <button value="cancel" class="icon-btn" aria-label="Fermer">✕</button>
+        </header>
+        <label class="field"><span>Comment appelles-tu ces moments ?</span>
+          <input id="nounInput" list="nounChoices" autocomplete="off" />
+          <datalist id="nounChoices"></datalist>
+        </label>
+        <p class="muted small" id="typesHelp"></p>
+        <ul id="typesList" class="types-list"></ul>
+        <div class="types-add">
+          <input id="typeNew" placeholder="Nouveau type, ex. : Mariage" autocomplete="off" />
+          <button type="button" id="typeAdd" class="btn">Ajouter</button>
+        </div>
+        <div id="typeIdeas" class="type-ideas"></div>
+        <footer>
+          <button value="cancel" class="btn primary">Terminé</button>
         </footer>
       </form>
     </dialog>

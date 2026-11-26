@@ -13,7 +13,7 @@ Une to-do list qu'on remplit **à la voix** et qu'on organise selon l'**urgence*
 - ⚑ **Signaler une erreur** : depuis une tâche, la fenêtre de validation ou le menu. Le rapport (texte dicté, ce que l'app a compris, ce qui était attendu) part dans un dépôt GitHub privé et devient un test automatique.
 - 🏷️ **Profils et catégories** : au premier lancement, on choisit son profil (artiste, entrepreneur, salarié, association, étudiant, parent, sportif, vie personnelle). Chaque tâche reçoit une catégorie devinée d'après la dictée, modifiable. Catégories et profils sont personnalisables.
 - ↻ **Tâches répétées** : « tous les lundis », « chaque mardi et vendredi », « tous les jours », « chaque mois », « … jusqu'au 30 juin » (à la dictée, à l'import ou dans la fiche). Une seule tâche, affichée à chaque occurrence dans le planning ; cochée, elle passe à la suivante.
-- ★ **Prestations et modèles « pour chaque prestation »** : une tâche modèle (« brief avec les mariés, J-30 → J-15 ») est copiée et datée automatiquement pour chaque tâche marquée « Prestation », et suit si la date de la prestation change.
+- ★ **Prestations et modèles « pour chaque prestation »** : une tâche modèle (« brief avec les mariés, J-30 → J-15 ») est copiée et datée automatiquement pour chaque tâche marquée « Prestation », et suit si la date de la prestation change. Chaque type de prestation (Mariage, Concert…) a ses propres tâches à préparer ; le mot « prestation » s'adapte au profil (mission, compétition, examen…). Ces réglages sont rangés derrière le bouton 🔧 de la fiche.
 - 🗑 **Corbeille** : une tâche supprimée reste récupérable 30 jours (menu ⋯ → Corbeille). « Retirer des tâches ajoutées récemment » annule un import ou une dictée de trop.
 - ✅ **Trois vues** :
   1. **Liste** : toutes les tâches triées par priorité, avec filtres.
@@ -56,6 +56,7 @@ js/voice.js           reconnaissance vocale du navigateur
 js/store.js           stockage local des tâches
 js/importer.js        import en nombre (CSV, liste, sauvegarde JSON)
 js/repeat.js          tâches répétées et modèles « pour chaque prestation »
+js/event-types.js     types de prestation et mot employé selon le profil
 js/views/             les 3 vues : list, gantt, matrix
 sw.js                 service worker (hors ligne)
 ```

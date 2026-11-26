@@ -127,6 +127,7 @@ export function renderGantt(root, tasks, ctx) {
       <span class="range-label">${fmtShort(state.start)} – ${fmtShort(last)}</span>
     </div>
     ${legendHtml()}
+    ${outside}
     <div class="gantt" style="--day-w:${dayW}px;--days:${span};--name-w:${nameW}px">
       <div class="g-inner">
         <div class="g-head"><div class="g-corner">Tâches</div>${head}</div>
@@ -145,7 +146,6 @@ export function renderGantt(root, tasks, ctx) {
         </div>
       </div>
     </div>
-    ${outside}
     ${
       unscheduled.length
         ? `<section class="unscheduled">

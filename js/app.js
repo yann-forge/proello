@@ -14,7 +14,8 @@ import { renderMatrix } from './views/matrix.js';
 
 import { VERSION } from './version.js';
 import { readImport, withoutDuplicates, templateCSV, decodeBytes } from './importer.js';
-import { placeRepeat, missingForEvent, fromTemplate, EVENT_WORDS, describeRepeat, describeOffsets } from './repeat.js';
+import { placeRepeat, missingForEvent, staleForEvent, appliesTo, fromTemplate, EVENT_WORDS, describeRepeat, describeOffsets } from './repeat.js';
+import { eventTypes, eventNoun, deNoun, setEventNoun, cap, NOUN_CHOICES, TYPE_IDEAS } from './event-types.js';
 import { dateChip } from './views/list.js';
 import { profiles } from './profiles.js';
 import { initProfileUI, showWelcomeIfNeeded, openProfileDialog, renderCatFilter, filterTasks, withCategories, categoryOptions } from './profile-ui.js';
@@ -365,8 +366,10 @@ function openEditor(id) {
   form.done.checked = t.done;
   form.repeat.value = t.repeat?.freq || '';
   form.until.value = t.repeat?.until || '';
-  form.event.checked = !!t.event;
-  form.template.checked = !!t.perEvent;
+  renderKindOptions(t.perEvent ? 'template' : t.event ? 'event' : '');
+  renderTypeOptions(t.perEvent ? t.perEvent.type : t.eventType);
+  form.newType.value = '';
+  setMoreOpen(false);
   form.tplFrom.value = t.perEvent?.from ?? -7;
   form.tplTo.value = t.perEvent?.to ?? t.perEvent?.from ?? -1;
   refreshEditorMode();
@@ -391,13 +394,17 @@ $('#editor').addEventListener('close', () => {
     endTime: form.time.value && form.endTime.value > form.time.value ? form.endTime.value : null,
     notes: form.notes.value,
     category: form.category.value || null,
-    event: form.event.checked,
+    event: form.kind.value === 'event',
   };
+  // type de prestation choisi (ou créé à la volée)
+  let type = form.eventType.value || null;
+  if (type === '__new') type = eventTypes.add(form.newType.value);
+  patch.eventType = patch.event ? type : null;
   // modèle « pour chaque prestation » : pas de date, un décalage en jours
-  if (form.template.checked) {
+  if (form.kind.value === 'template') {
     const a = Number(form.tplFrom.value) || 0;
     const b = form.tplTo.value === '' ? a : Number(form.tplTo.value) || 0;
-    Object.assign(patch, { perEvent: { from: Math.min(a, b), to: Math.max(a, b) }, start: null, end: null, repeat: null, event: false });
+    Object.assign(patch, { perEvent: { from: Math.min(a, b), to: Math.max(a, b), type }, start: null, end: null, repeat: null, event: false });
   } else {
     patch.perEvent = null;
     // répétition : la tâche est placée sur sa prochaine occurrence à partir de la date de début
@@ -411,21 +418,164 @@ $('#editor').addEventListener('close', () => {
   if (form.done.checked !== t.done) patch.done = form.done.checked;
   const datesMoved = t.start !== patch.start || t.end !== patch.end;
   const saved = ctx.update(editingId, patch);
-  if (saved?.event) syncEvent(saved, datesMoved);
-  if (saved?.perEvent && !t.perEvent) syncAllEvents();
+  if (saved && (saved.event || t.event)) syncEvent(saved, datesMoved || saved.eventType !== t.eventType);
+  if (saved?.perEvent && (!t.perEvent || t.perEvent.type !== saved.perEvent.type)) syncAllEvents();
 });
 
-/** Répétition / prestation / modèle : n'affiche que les champs utiles. */
+/* ---------- Réglages avancés de la fiche (🔧) : répétition, prestation, modèle ---------- */
+
+function setMoreOpen(open) {
+  $('#editorMore').hidden = !open;
+  $('#editorMoreBtn').setAttribute('aria-expanded', String(open));
+}
+$('#editorMoreBtn').addEventListener('click', () => setMoreOpen($('#editorMore').hidden));
+
+function renderKindOptions(kind) {
+  const n = eventNoun();
+  form.kind.innerHTML = [
+    ['', 'Tâche simple'],
+    ['event', `★ Date ${deNoun(n)}`],
+    ['template', `📋 À faire pour chaque ${n}`],
+  ]
+    .map(([v, l]) => `<option value="${v}">${esc(l)}</option>`)
+    .join('');
+  form.kind.value = kind;
+}
+
+function renderTypeOptions(selected) {
+  const types = eventTypes.all();
+  form.eventType.innerHTML =
+    '<option value=""></option>' +
+    types.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join('') +
+    '<option value="__new">+ Nouveau type…</option>';
+  form.eventType.value = types.some((t) => t.id === selected) ? selected : '';
+}
+
+/** N'affiche que les champs utiles, et résume les réglages sur le bouton 🔧. */
 function refreshEditorMode() {
-  const tpl = form.template.checked;
+  const kind = form.kind.value;
+  const tpl = kind === 'template';
+  const n = eventNoun();
   $('#editorDates').hidden = tpl;
   $('#editorRepeat').hidden = tpl;
   $('#editorTpl').hidden = !tpl;
-  $('#editorEventRow').hidden = tpl;
+  $('#editorTypeRow').hidden = !kind;
   $('#editorUntil').hidden = !form.repeat.value;
+  $('#editorNewType').hidden = form.eventType.value !== '__new';
+  $('#editorTypeLabel').textContent = `Type ${deNoun(n)}`;
+  // l'option vide change de sens selon le genre de tâche
+  form.eventType.options[0].textContent = tpl ? 'Tous les types' : 'Sans type';
+  const typeName = form.eventType.value === '__new' ? form.newType.value.trim() : eventTypes.name(form.eventType.value);
+  $('#editorKindHint').textContent =
+    kind === 'event'
+      ? `Les tâches « à faire pour chaque ${n} » ${typeName ? `du type ${typeName} et de tous les types` : 'de tous les types'} seront créées et datées autour de cette date.`
+      : tpl
+        ? `Cette tâche sera copiée et datée pour chaque date ${deNoun(n)}${typeName ? ` du type ${typeName}` : ''}. Du jour −30 au jour −15 : entre 30 et 15 jours avant.`
+        : '';
+  const bits = [];
+  if (form.repeat.value && !tpl) bits.push(`↻ ${form.repeat.selectedOptions[0].textContent.toLowerCase()}`);
+  if (kind === 'event') bits.push(`★ ${typeName || cap(n)}`);
+  if (tpl) bits.push(`📋 pour chaque ${typeName ? typeName.toLowerCase() : n}`);
+  $('#editorMoreSum').textContent = bits.length ? bits.join(' · ') : `Répétition, date ${deNoun(n)}, tâche à préparer`;
+  $('#editorMoreBtn').classList.toggle('has-settings', bits.length > 0);
 }
-form.template.addEventListener('change', refreshEditorMode);
+form.kind.addEventListener('change', refreshEditorMode);
 form.repeat.addEventListener('change', refreshEditorMode);
+form.eventType.addEventListener('change', () => {
+  refreshEditorMode();
+  if (form.eventType.value === '__new') form.newType.focus();
+});
+form.newType.addEventListener('input', refreshEditorMode);
+$('#editorTypesBtn').addEventListener('click', () => openTypesDialog());
+
+/* ---------- Types de prestation et mot utilisé (prestation, événement, mission…) ---------- */
+
+function openTypesDialog() {
+  renderTypesDialog();
+  $('#typesDlg').showModal();
+}
+$('#typesMenuBtn').addEventListener('click', () => {
+  $('#menu').close();
+  openTypesDialog();
+});
+$('#typesDlg').addEventListener('close', () => {
+  // la fiche ouverte dessous reprend les nouveaux noms
+  if ($('#editor').open) {
+    renderKindOptions(form.kind.value);
+    renderTypeOptions(form.eventType.value);
+    refreshEditorMode();
+  }
+  refreshNounLabels();
+  render();
+});
+
+function renderTypesDialog() {
+  const n = eventNoun();
+  $('#nounInput').value = n;
+  $('#nounChoices').innerHTML = NOUN_CHOICES.map((w) => `<option value="${w}"></option>`).join('');
+  $('#typesTitle').textContent = `Types ${deNoun(n)}`;
+  $('#typesHelp').textContent = `Chaque type a ses propres tâches à préparer (dans la fiche d’une tâche : 🔧 Réglages avancés → « À faire pour chaque ${n} »). Celles réglées sur « Tous les types » servent pour toutes.`;
+  const all = store.all();
+  const types = eventTypes.all();
+  $('#typesList').innerHTML = types.length
+    ? types
+        .map((t) => {
+          const tpls = all.filter((x) => x.perEvent?.type === t.id).length;
+          const evs = all.filter((x) => x.event && x.eventType === t.id).length;
+          return `<li data-type="${t.id}">
+            <input value="${esc(t.name)}" aria-label="Nom du type" />
+            <small>${plural(tpls, 'tâche')} à préparer · ${plural(evs, 'date')}</small>
+            <button type="button" class="icon-btn" data-del-type="${t.id}" aria-label="Supprimer ce type">✕</button>
+          </li>`;
+        })
+        .join('')
+    : `<li class="muted small">Aucun type pour l’instant : toutes tes tâches à préparer servent pour chaque ${n}.</li>`;
+  const have = new Set(types.map((t) => t.name.toLowerCase()));
+  const ideas = (TYPE_IDEAS[n] || []).filter((x) => !have.has(x.toLowerCase()));
+  $('#typeIdeas').innerHTML = ideas.length
+    ? `<small class="muted">Idées :</small>${ideas.map((x) => `<button type="button" class="chip-btn" data-idea="${esc(x)}">+ ${esc(x)}</button>`).join('')}`
+    : '';
+}
+
+$('#nounInput').addEventListener('change', () => {
+  setEventNoun($('#nounInput').value);
+  renderTypesDialog();
+});
+$('#typesList').addEventListener('change', (e) => {
+  const li = e.target.closest('[data-type]');
+  if (li && e.target.matches('input')) eventTypes.rename(li.dataset.type, e.target.value);
+});
+$('#typesList').addEventListener('click', (e) => {
+  const del = e.target.closest('[data-del-type]');
+  if (!del) return;
+  const id = del.dataset.delType;
+  if (!confirm(`Supprimer le type « ${eventTypes.name(id)} » ? Ses tâches à préparer serviront alors pour tous les types.`)) return;
+  for (const t of store.all()) {
+    if (t.perEvent?.type === id) store.update(t.id, { perEvent: { ...t.perEvent, type: null } });
+    if (t.eventType === id) store.update(t.id, { eventType: null });
+  }
+  eventTypes.remove(id);
+  renderTypesDialog();
+});
+const addType = (name) => eventTypes.add(name) && renderTypesDialog();
+$('#typeAdd').addEventListener('click', () => {
+  addType($('#typeNew').value);
+  $('#typeNew').value = '';
+});
+$('#typeNew').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  $('#typeAdd').click();
+});
+$('#typeIdeas').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-idea]');
+  if (b) addType(b.dataset.idea);
+});
+
+function refreshNounLabels() {
+  $('#typesMenuBtn').textContent = `★ Types ${deNoun()} et tâches à préparer`;
+}
+refreshNounLabels();
 
 /* ---------- Prestations : copies datées des modèles « pour chaque prestation » ---------- */
 
@@ -433,6 +583,15 @@ form.repeat.addEventListener('change', refreshEditorMode);
 function syncEvent(ev, moved = false) {
   if (!ev) return 0;
   const all = store.all();
+  // type changé ou plus une prestation : les tâches préparées (pas encore faites) qui ne vont plus partent à la corbeille
+  const stale = staleForEvent(ev, all);
+  if (stale.length) {
+    const ids = stale.map((c) => c.id);
+    store.removeMany(ids);
+    const s = stale.length > 1 ? 's' : '';
+    toast(`${plural(stale.length, 'tâche')} préparée${s} retirée${s} de « ${ev.title} »`, { label: 'Annuler', run: () => store.untrash(ids) });
+  }
+  if (!ev.event) return 0;
   if (moved) {
     for (const c of all.filter((x) => x.forEvent === ev.id && !x.done)) {
       const tpl = all.find((x) => x.id === c.fromTemplate);
@@ -456,15 +615,24 @@ function syncAllEvents() {
 
 /** Nouvelle tâche datée qui ressemble à une prestation, alors que des modèles existent : on propose. */
 function suggestEvent(created) {
-  const n = store.all().filter((t) => t.perEvent).length;
-  if (!n) return;
-  const ev = created.find((t) => t.start && !t.repeat && !t.perEvent && EVENT_WORDS.test(`${t.title} ${t.source || ''}`));
+  const tpls = store.all().filter((t) => t.perEvent && !t.deletedAt);
+  if (!tpls.length) return;
+  const typeWords = eventTypes.all().map((t) => t.name.toLowerCase());
+  const looksLike = (t) => {
+    const s = `${t.title} ${t.source || ''}`;
+    return EVENT_WORDS.test(s) || typeWords.some((w) => s.toLowerCase().includes(w));
+  };
+  const ev = created.find((t) => t.start && !t.repeat && !t.perEvent && looksLike(t));
   if (!ev) return;
+  const eventType = eventTypes.guess(`${ev.title} ${ev.source || ''}`);
+  const n = tpls.filter((tpl) => appliesTo(tpl, { eventType })).length;
+  if (!n) return;
+  const label = eventType ? eventTypes.name(eventType).toLowerCase() : `date ${deNoun()}`;
   setTimeout(
     () =>
-      toast(`« ${ev.title} » est une prestation ? ${plural(n, 'tâche')} à préparer`, {
+      toast(`« ${ev.title} » : ${label} ? ${plural(n, 'tâche')} à préparer`, {
         label: 'Oui',
-        run: () => syncEvent(store.update(ev.id, { event: true })),
+        run: () => syncEvent(store.update(ev.id, { event: true, eventType })),
       }),
     1600
   );
@@ -743,7 +911,7 @@ function previewImport() {
   const dropped = result.skipped.filter((s) => !s.kept);
   const row = (t) => {
     const bits = [
-      t.perEvent ? `Pour chaque prestation (${describeOffsets(t.perEvent)})` : '',
+      t.perEvent ? `Pour chaque ${t.perEvent.type ? eventTypes.name(t.perEvent.type).toLowerCase() : eventNoun()} (${describeOffsets(t.perEvent)})` : '',
       t.repeat ? `↻ ${describeRepeat(t)} dès ${relLabel(t.start).toLowerCase()}${t.repeat.until ? ` jusqu'au ${fmtShortDate(t.repeat.until)}` : ''}` : '',
       t.start && !t.repeat ? (t.start !== t.end ? `${relLabel(t.start)} → ${relLabel(t.end)}` : relLabel(t.end)) : '',
       t.time ? fmtTime(t.time, t.endTime) : '',
