@@ -30,3 +30,20 @@ test('planning : aujourd’hui d’abord, puis priorité et proximité, terminé
     'Fini',
   ]);
 });
+
+test('liste : une tâche « Urgent » commencée hier et due aujourd’hui passe devant les « Important » à venir et sans date', () => {
+  const list = [
+    t('Important sans date', null, null, false, true),
+    t('Important dans 6 mois', '2027-05-01', '2027-09-30', false, true),
+    t('Changer cordes (urgent, hier → aujourd’hui)', '2026-11-25', '2026-11-26', true, false),
+    t('Urgent important sans date', null, null, true, true),
+    t('Simple sans date', null, null),
+  ];
+  assert.deepEqual(sortPlanning(list, today).map((x) => x.title), [
+    'Changer cordes (urgent, hier → aujourd’hui)',
+    'Urgent important sans date',
+    'Important sans date',
+    'Simple sans date',
+    'Important dans 6 mois',
+  ]);
+});

@@ -27,7 +27,7 @@ const drag = { armed: false };
 function barBox(s, e, span, dayW) {
   const a = Math.max(s, 0);
   const b = Math.min(e, span - 1);
-  return { left: a * dayW + 3, width: Math.max(b - a + 1, 1) * dayW - 6 };
+  return { left: a * dayW + 1, width: Math.max(b - a + 1, 1) * dayW - 2 };
 }
 const barStyle = ({ left, width }) => `left:${left}px;width:${width}px`;
 

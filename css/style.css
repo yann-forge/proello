@@ -224,7 +224,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 120px; }
 .g-body { position: relative; min-height: 100px; padding-bottom: 4px; }
 .g-grid { position: absolute; top: 0; bottom: 0; left: var(--name-w); display: flex; pointer-events: none; }
 /* une ligne par tâche : titre à gauche (petit, sur plusieurs lignes), barre sans texte à droite */
-.g-row { position: relative; display: flex; min-height: 36px; border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent); }
+.g-row { position: relative; display: flex; min-height: 38px; border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent); }
 .g-name {
   position: sticky; left: 0; z-index: 3; flex: 0 0 var(--name-w); width: var(--name-w);
   display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 5px 8px 5px 9px; text-align: left;
@@ -242,9 +242,10 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 120px; }
 .g-now { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--orange-strong); opacity: 0.7; pointer-events: none; z-index: 1; }
 
 /* Une barre par tâche ; le titre est dedans (lbl-in) ou juste à côté (lbl-right / lbl-left) */
+/* barre épaisse et franche : elle remplit presque toute la case (hauteur de la ligne, largeur des jours) */
 .g-bar {
-  position: absolute; top: 50%; height: 20px; margin-top: -10px; border-radius: 8px;
-  background: var(--q); color: var(--q-ink); border: 1.5px solid var(--q-strong);
+  position: absolute; top: 4px; bottom: 4px; min-height: 24px; border-radius: 7px;
+  background: color-mix(in srgb, var(--q-strong) 70%, var(--q)); color: var(--q-ink); border: 2px solid var(--q-strong);
   display: flex; align-items: center; padding: 0 10px; font-size: 0.82rem; font-weight: 800;
   cursor: grab; touch-action: pan-x pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   transition: box-shadow 0.15s; z-index: 2;

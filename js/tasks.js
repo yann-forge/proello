@@ -58,17 +58,20 @@ const PLAN_DELAY = { do: 0, plan: 5, delegate: 7, later: 10 };
 const dayNum = (iso) => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) / 86400000;
 
 /**
- * Ordre des lignes du planning :
+ * Ordre des tâches (liste et planning) :
  * 1. à faire aujourd'hui (commencée, du jour ou en retard), quelle que soit sa priorité — par cadran puis échéance ;
  * 2. puis les suivantes, selon leur proximité et leur priorité (jours d'attente + délai du cadran) ;
+ *    une tâche sans date compte comme « à faire dès que possible » (délai du cadran seul) ;
  * 3. les terminées à la fin.
+ * Ne fait que trier : urgent / important ne sont jamais modifiés.
  */
 export function sortPlanning(list, today) {
   const t0 = dayNum(today);
   const rank = (t) => {
     const q = quadrantOf(t);
-    if (t.done) return [2, dayNum(t.start), 0];
-    if (t.start <= today) return [0, QUAD_ORDER.indexOf(q), dayNum(t.end)];
+    if (t.done) return [2, t.start ? dayNum(t.start) : Infinity, 0];
+    if (!t.start) return [1, PLAN_DELAY[q] + 0.5, QUAD_ORDER.indexOf(q)];
+    if (t.start <= today) return [0, QUAD_ORDER.indexOf(q), dayNum(t.end || t.start)];
     return [1, dayNum(t.start) - t0 + PLAN_DELAY[q], QUAD_ORDER.indexOf(q)];
   };
   return [...list]

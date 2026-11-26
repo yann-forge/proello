@@ -1,6 +1,6 @@
 // Vue 1 : to-do list complète, triée par priorité
 
-import { QUADS, QUAD_ORDER, quadrantOf, sortTasks } from '../tasks.js';
+import { QUADS, QUAD_ORDER, quadrantOf, sortTasks, sortPlanning } from '../tasks.js';
 import { relLabel, todayISO, fmtTime } from '../dates.js';
 import { esc, lsGet, lsSet } from '../util.js';
 import { catChip } from '../profile-ui.js';
@@ -99,7 +99,8 @@ export function renderList(root, all, ctx) {
   if (state.filter === 'todo') shown = open;
   if (state.filter === 'done') shown = tasks.filter((t) => t.done);
   if (state.quad) shown = shown.filter((t) => quadrantOf(t) === state.quad);
-  shown = sortTasks(shown);
+  // même ordre que le planning : à faire aujourd'hui d'abord, puis priorité et proximité
+  shown = sortPlanning(shown, todayISO());
 
   const pct = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
 
