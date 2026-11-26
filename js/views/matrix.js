@@ -17,7 +17,7 @@ function shortDate(t) {
     .replace('Demain', 'Dem.')
     .replace('Hier', 'Hier')
     .replace(/^(Lundi|Mardi|Mercredi|Jeudi|Vendredi|Samedi|Dimanche)$/, (w) => w.slice(0, 3) + '.');
-  return `<span class="mx-date ${late ? 'late' : ''}">${late ? '⚠ ' : ''}${label}${t.time ? ' ' + fmtTime(t.time) : ''}</span>`;
+  return `<span class="mx-date ${late ? 'late' : ''}">${late ? '⚠ ' : ''}${t.repeat ? '↻ ' : ''}${label}${t.time ? ' ' + fmtTime(t.time) : ''}</span>`;
 }
 
 const card = (t) => `<li class="mx-card" data-id="${t.id}">
@@ -32,7 +32,7 @@ const card = (t) => `<li class="mx-card" data-id="${t.id}">
 
 export function renderMatrix(root, tasks, ctx) {
   const by = { do: [], plan: [], delegate: [], later: [] };
-  sortTasks(tasks.filter((t) => !t.done)).forEach((t) => by[quadrantOf(t)].push(t));
+  sortTasks(tasks.filter((t) => !t.done && !t.perEvent)).forEach((t) => by[quadrantOf(t)].push(t));
 
   const quad = (k) => `<section class="quad q-${k}" data-quad="${k}">
     <header><div><h3>${QUADS[k].label}</h3><p>${QUADS[k].sub}</p></div><span class="count">${by[k].length}</span></header>

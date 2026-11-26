@@ -119,14 +119,33 @@
         </div>
         <p id="editorQuad" class="quad-hint"></p>
         <label class="field"><span>Catégorie</span><select name="category" class="cat-select"></select></label>
-        <div class="row2">
-          <label class="field"><span>Début</span><input type="date" name="start" /></label>
-          <label class="field"><span>Échéance</span><input type="date" name="end" /></label>
+        <div id="editorDates">
+          <div class="row2">
+            <label class="field"><span>Début</span><input type="date" name="start" /></label>
+            <label class="field"><span>Échéance</span><input type="date" name="end" /></label>
+          </div>
+          <div class="row2">
+            <label class="field"><span>Heure</span><input type="time" name="time" /></label>
+            <label class="field"><span>Fin</span><input type="time" name="endTime" /></label>
+          </div>
         </div>
-        <div class="row2">
-          <label class="field"><span>Heure</span><input type="time" name="time" /></label>
-          <label class="field"><span>Fin</span><input type="time" name="endTime" /></label>
+        <div class="row2" id="editorRepeat">
+          <label class="field"><span>Répéter</span>
+            <select name="repeat">
+              <option value="">Jamais</option>
+              <option value="day">Chaque jour</option>
+              <option value="week">Chaque semaine</option>
+              <option value="month">Chaque mois</option>
+            </select>
+          </label>
+          <label class="field" id="editorUntil"><span>Jusqu'au</span><input type="date" name="until" /></label>
         </div>
+        <div id="editorTpl" class="row2" hidden>
+          <label class="field"><span>Du jour (J−30 = -30)</span><input type="number" name="tplFrom" min="-365" max="365" step="1" /></label>
+          <label class="field"><span>Au jour (J+7 = 7)</span><input type="number" name="tplTo" min="-365" max="365" step="1" /></label>
+        </div>
+        <label class="check-row" id="editorEventRow"><input type="checkbox" name="event" /> ★ Prestation <small class="muted">(prépare les tâches « pour chaque prestation »)</small></label>
+        <label class="check-row"><input type="checkbox" name="template" /> Modèle « pour chaque prestation » <small class="muted">(sans date)</small></label>
         <label class="field"><span>Détail</span><textarea name="notes" rows="4" placeholder="Ce que tu as dicté, des liens, des personnes…"></textarea></label>
         <details id="editorSource" class="source-box" hidden>
           <summary>🎙 Dictée d'origine <small id="editorSourceCount"></small></summary>

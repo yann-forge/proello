@@ -6,6 +6,7 @@ import { quadrantOf, sortTasks } from '../tasks.js';
 import { todayISO, addDays, diffDays, fromISO, fmtShort, fmtTime } from '../dates.js';
 import { renderDay, legendHtml } from './day.js';
 import { esc, lsGet, lsSet } from '../util.js';
+import { occurrences, describeRepeat } from '../repeat.js';
 
 const SPANS = [
   { days: 7, label: 'Semaine', step: 7 },
@@ -51,8 +52,10 @@ export function renderGantt(root, tasks, ctx) {
   const dayW = Math.max(span > 14 ? 26 : 34, Math.floor((avail - nameW) / span));
   const prevScroll = root.querySelector('.gantt')?.scrollLeft;
 
+  tasks = tasks.filter((t) => !t.perEvent); // modèles « pour chaque prestation » : pas de date propre
   const scheduled = tasks.filter((t) => t.start);
-  const visible = scheduled.filter((t) => t.end >= state.start && t.start <= last);
+  // tâche répétée : visible si une de ses occurrences tombe dans la période
+  const visible = scheduled.filter((t) => (t.repeat ? occurrences(t, state.start, last).length : t.end >= state.start && t.start <= last));
   const before = scheduled.filter((t) => t.end < state.start && !t.done).sort((a, b) => (a.end < b.end ? 1 : -1));
   const after = scheduled.filter((t) => t.start > last && !t.done).sort((a, b) => (a.start < b.start ? -1 : 1));
   const unscheduled = sortTasks(tasks.filter((t) => !t.start && !t.done));
@@ -81,14 +84,23 @@ export function renderGantt(root, tasks, ctx) {
       const s = diffDays(state.start, t.start);
       const e = diffDays(state.start, t.end);
       const q = quadrantOf(t);
-      return `<div class="g-row ${t.done ? 'is-done' : ''}">
-        <button class="g-name q-${q}" data-edit="${t.id}">${t.time ? `<small>${fmtTime(t.time, t.endTime)}</small>` : ''}<span>${esc(t.title)}</span></button>
-        <div class="g-track">
-          <div class="g-bar q-${q} ${t.done ? 'is-done' : ''} ${s < 0 ? 'clip-l' : ''} ${e > span - 1 ? 'clip-r' : ''}" data-id="${t.id}"
+      // tâche répétée : une petite barre par occurrence (on la modifie depuis sa fiche)
+      const bars = t.repeat
+        ? occurrences(t, state.start, last)
+            .map((d) => {
+              const i = diffDays(state.start, d);
+              return `<button class="g-bar g-occ q-${q}" data-edit="${t.id}" style="${barStyle(barBox(i, i, span, dayW))}" title="${esc(t.title)} · ${esc(describeRepeat(t))}" aria-label="${esc(t.title)}, ${fmtShort(d)}"></button>`;
+            })
+            .join('')
+        : `<div class="g-bar q-${q} ${t.done ? 'is-done' : ''} ${s < 0 ? 'clip-l' : ''} ${e > span - 1 ? 'clip-r' : ''}" data-id="${t.id}"
             style="${barStyle(barBox(s, e, span, dayW))}" title="${esc(t.title)}" aria-label="${esc(t.title)}">
             <i class="g-handle l"></i><i class="g-handle r"></i>
-          </div>
-        </div>
+          </div>`;
+      return `<div class="g-row ${t.done ? 'is-done' : ''}">
+        <button class="g-name q-${q}" data-edit="${t.id}">${
+          t.time || t.repeat ? `<small>${t.repeat ? '↻ ' : ''}${t.time ? fmtTime(t.time, t.endTime) : esc(describeRepeat(t))}</small>` : ''
+        }<span>${esc(t.title)}</span></button>
+        <div class="g-track">${bars}</div>
       </div>`;
     })
     .join('');
@@ -181,7 +193,7 @@ export function renderGantt(root, tasks, ctx) {
   };
 
   root.onpointerdown = (ev) => {
-    const bar = ev.target.closest('.g-bar');
+    const bar = ev.target.closest('.g-bar:not(.g-occ)');
     if (!bar || ev.button > 0) return;
     ev.preventDefault();
     const id = bar.dataset.id;

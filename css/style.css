@@ -707,3 +707,15 @@ button.g-day:hover b { color: var(--orange-ink); }
 .import-preview ul.import-notes li { background: var(--yellow-soft); border-left-color: var(--yellow-strong); color: var(--yellow-ink); }
 .import-preview ul.import-warn { margin-top: 8px; }
 .import-preview ul.import-warn li { background: #fde4dc; border-left-color: #e98a6b; }
+
+/* ---------- Tâches répétées, prestations et modèles « pour chaque prestation » ---------- */
+
+.date-chip.rep { background: #efe9f8; color: #5f4b8b; }
+.date-chip.rep.late { background: #fde4dc; color: #b23c17; }
+.date-chip.tpl { background: var(--surface-2); color: var(--muted); border: 1px dashed var(--sand-strong); }
+.event-chip { display: inline-flex; align-items: center; height: 26px; padding: 0 10px; border-radius: 999px; font-size: 0.78rem; font-weight: 800; background: #fff1c2; color: #8a6500; white-space: nowrap; }
+.g-bar.g-occ { padding: 0; border-radius: 6px; cursor: pointer; }
+.tpl-section { margin-top: 18px; padding: 10px 12px; border-radius: var(--radius); border: 1px dashed var(--sand-strong); background: var(--surface-2); }
+.tpl-section summary { cursor: pointer; font-weight: 800; color: var(--muted); }
+.tpl-section summary small { margin-left: 4px; }
+.tpl-section .task-list { margin-top: 8px; }

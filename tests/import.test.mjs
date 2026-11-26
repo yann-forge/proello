@@ -43,15 +43,30 @@ test('période en début / échéance ; le titre du tableau est gardé tel quel'
   assert.equal(t.title, 'Trouver un lieu de tournage « ambiance mariage »');
 });
 
-test('date ou heure non datable (répétition, « en continu ») : recopiée dans le détail', () => {
+test('rétroplanning : répétitions, « en continu » et tâches « pour chaque prestation »', () => {
   const csv = 'Titre;Début;Échéance;Heure;Détails\n' +
     'Candidature hebdomadaire;07/12/2026;Chaque semaine;Lundi matin;1 candidature par semaine\n' +
-    'Brief avec les mariés;J-30 avant chaque date;J-15 avant chaque date;;\n';
-  const [a, b] = readImport(csv, { now }).tasks;
-  assert.equal(a.start, '2026-12-07');
-  assert.equal(a.notes, '1 candidature par semaine\nÉchéance : Chaque semaine\nHeure : Lundi matin');
-  assert.equal(b.start, null);
-  assert.match(b.notes, /Début : J-30 avant chaque date\nÉchéance : J-15 avant chaque date/);
+    'Publier 2 vidéos courtes par semaine;22/12/2026;30/09/2027;Mardi et vendredi;\n' +
+    'Répondre dans la journée;07/12/2026;En continu;;\n' +
+    'Brief avec les mariés;J-30 avant chaque date;J-15 avant chaque date;;\n' +
+    'Demander un avis;Après chaque date;J+7 après chaque date;;\n' +
+    'Bilan de saison;01/10/2027;31/10/2027;;\n' +
+    'Point hebdo;;;Lundi;\n';
+  const r = readImport(csv, { now });
+  const [cand, pub, rep, brief, avis, , point] = r.tasks;
+  assert.deepEqual(r.skipped, []);
+  // chaque lundi 9h à partir du lundi 7 décembre, sans fin
+  assert.deepEqual([cand.start, cand.time, cand.repeat.freq, cand.repeat.days, cand.repeat.until], ['2026-12-07', '09:00', 'week', [1], undefined]);
+  assert.equal(cand.notes, '1 candidature par semaine');
+  // chaque mardi et vendredi du 22/12/2026 au 30/09/2027
+  assert.deepEqual([pub.start, pub.repeat.days, pub.repeat.until], ['2026-12-22', [2, 5], '2027-09-30']);
+  // en continu : jusqu'à la dernière date du rétroplanning
+  assert.deepEqual([rep.start, rep.end, rep.repeat], ['2026-12-07', '2027-10-31', undefined]);
+  // modèles « pour chaque prestation »
+  assert.deepEqual([brief.perEvent, brief.start], [{ from: -30, to: -15 }, null]);
+  assert.deepEqual(avis.perEvent, { from: 1, to: 7 });
+  // un jour sans date ni répétition : chaque lundi
+  assert.deepEqual([point.repeat.freq, point.repeat.days, point.start], ['week', [1], '2026-11-30']);
 });
 
 test('ligne sans titre ignorée, date incomprise signalée mais tâche gardée', () => {

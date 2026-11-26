@@ -8,7 +8,8 @@
 
 import { parseDictation } from './parser.js';
 import { extractWhen } from './when.js';
-import { toISO, todayISO, addDays } from './dates.js';
+import { toISO, todayISO, addDays, diffDays, fromISO } from './dates.js';
+import { findRepeat, placeRepeat, weekdaysIn, dayPartTime, eventOffset } from './repeat.js';
 import { uid } from './util.js';
 
 // sans accents ni majuscules (comme slug() de profiles.js, qui n'est pas chargeable hors navigateur)
@@ -169,13 +170,22 @@ export function tasksFromTable(rows, { categories = [], now = new Date() } = {})
     t.important = isYes(get(row, 'important')) || !!prio.important;
     t.done = isYes(get(row, 'done'));
 
-    // une date ou une heure non comprise (« Chaque semaine », « J-30 avant chaque date »…) n'est pas perdue :
-    // elle est recopiée dans le détail de la tâche
+    // Cellules de date : une vraie date, une répétition (« Chaque semaine »), « En continu »,
+    // ou un moment lié aux prestations (« J-30 avant chaque date »). Ce qui reste incompris
+    // n'est pas perdu : recopié dans le détail de la tâche.
     const unread = [];
     const label = (f) => rows[0][map[f]] || f;
+    let repeat = null;
+    let ongoing = false;
+    const offsets = {};
     const date = (f) => {
       const v = get(row, f);
       if (!v) return null;
+      const off = eventOffset(v);
+      if (off != null) return (offsets[f] = off), null;
+      if (ONGOING.test(v)) return (ongoing = true), null;
+      const rep = findRepeat(v);
+      if (rep && !/\d/.test(v)) return (repeat = { ...rep.repeat, ...(repeat?.days ? { days: repeat.days } : {}) }), null;
       const d = parseDateCell(v, now);
       if (!d) unread.push([label(f), v]);
       return d;
@@ -187,13 +197,37 @@ export function tasksFromTable(rows, { categories = [], now = new Date() } = {})
     t.end = e?.end || d?.end || s?.end || null;
     if (s && e && e.end < s.start) t.end = s.start;
 
+    // Heure : « 14h », « 9h-11h », ou des jours (« Mardi et vendredi », « Lundi matin »)
     const tv = get(row, 'time');
     const time = tv ? parseTimeCell(tv) : null;
-    if (tv && !time) unread.push([label('time'), tv]);
+    const days = tv && !time ? weekdaysIn(tv) : [];
+    const part = tv && !time ? dayPartTime(tv) : null;
     if (time) {
       t.time = time.time;
       t.endTime = time.endTime || parseTimeCell(get(row, 'endTime'))?.time || null;
+    } else if (part) t.time = part;
+    if (tv && !time && !days.length && !part) unread.push([label('time'), tv]);
+
+    const offs = Object.values(offsets);
+    if (offs.length) {
+      // modèle « pour chaque prestation » : J-30 → J-15, J+1 → J+7…
+      t.perEvent = { from: Math.min(...offs), to: Math.max(...offs) };
+      t.start = t.end = null;
+    } else if (days.length) {
+      const span = t.start && t.end ? diffDays(t.start, t.end) : Infinity;
+      if (repeat || span > 7) repeat = { freq: 'week', days };
+      else if (t.start) {
+        // un jour précis dans une période courte : « Lundi » entre le 7 et le 13
+        let x = t.start;
+        while (x < t.end && !days.includes(fromISO(x).getDay())) x = addDays(x, 1);
+        t.start = t.end = x;
+      }
     }
+    if (repeat && !t.perEvent) {
+      // une vraie date d'échéance devient la fin de la série ; une échéance « Chaque semaine » n'en est pas une
+      Object.assign(t, placeRepeat(repeat, { start: t.start, end: e ? t.end : null, now }));
+    }
+    if (ongoing && !t.perEvent && !repeat) t.ongoing = true; // fin fixée plus bas : dernière date du fichier
     const cv = get(row, 'category');
     t.category = cv ? categoryId(cv, categories) : null;
     if (cv && !t.category) t.categoryHint = cv; // nom inconnu : aide à deviner la catégorie
@@ -203,8 +237,17 @@ export function tasksFromTable(rows, { categories = [], now = new Date() } = {})
     }
     tasks.push(t);
   });
+  // « En continu » : jusqu'à la dernière date du fichier (la fin du rétroplanning)
+  const horizon = tasks.reduce((m, t) => (!t.ongoing && !t.repeat && t.end > m ? t.end : m), '');
+  for (const t of tasks.filter((x) => x.ongoing)) {
+    t.start ||= toISO(now);
+    t.end = horizon > t.start ? horizon : t.start;
+    delete t.ongoing;
+  }
   return { tasks, skipped };
 }
+
+const ONGOING = /\b(en\s+continu|en\s+permanence|permanent|toute\s+l['’]ann[ée]e|au\s+fil\s+de\s+l['’]eau|tout\s+le\s+temps|r[ée]guli[èe]rement)\b/iu;
 
 /* ---------- Texte, une tâche par ligne ---------- */
 

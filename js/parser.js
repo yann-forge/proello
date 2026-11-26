@@ -166,7 +166,7 @@ function parseFragment(raw, now) {
 
   const when = extractWhen(text, now);
   const full = clean(when.text);
-  const base = { raw, urgent, important, start: when.start, end: when.end, repeats: when.repeats || [], time: when.time, endTime: when.endTime };
+  const base = { raw, urgent, important, start: when.start, end: when.end, repeats: when.repeats || [], repeat: when.repeat || null, time: when.time, endTime: when.endTime };
 
   if (!/\p{L}{2,}/u.test(full) || ATTRIBUTE_ONLY.test(full)) {
     // pas d'action : seulement des précisions à rattacher à une tâche voisine
@@ -186,6 +186,12 @@ function mergeInto(task, extra) {
     task.start = extra.start;
     task.end = extra.end;
     task.repeats = extra.repeats;
+    task.repeat = extra.repeat;
+  } else if (extra.repeat && !task.repeat) {
+    // « Appeler Paul. Tous les lundis. » : la répétition s'applique à la tâche précédente
+    task.repeat = extra.repeat;
+    task.start = extra.start;
+    task.end = extra.end;
   }
   task.raw = `${task.raw}. ${extra.raw}`;
   task.merged = true;
@@ -277,6 +283,7 @@ export function parseDictation(input, now = new Date()) {
       end: t.end,
       time: t.time || null, // horaire « HH:MM » (vue journée)
       endTime: t.endTime || null,
+      ...(t.repeat ? { repeat: t.repeat } : {}), // tâche répétée (« tous les lundis »)
     };
     // « sport lundi et jeudi » : une tâche par jour
     return [task, ...(t.repeats || []).map((d) => ({ ...task, start: d, end: d }))];

@@ -6,6 +6,7 @@
 // `updatedAt` est mis à jour à chaque modification (préparation de la synchronisation).
 
 import { lsGet, lsSet, uid } from './util.js';
+import { nextOccurrence, withAnchor } from './repeat.js';
 
 const KEY = 'proello.tasks.v1';
 export const TRASH_DAYS = 30;
@@ -36,6 +37,7 @@ function normalizeDates(t) {
   if (start && !end) end = start;
   if (end && !start) start = end;
   if (start && end && end < start) end = start;
+  if (t.perEvent) start = end = null; // modèle « pour chaque prestation » : daté seulement en copie
   const time = t.time || null;
   const endTime = time && t.endTime && t.endTime > time ? t.endTime : null;
   return { ...t, start, end, time, endTime };
@@ -59,6 +61,11 @@ function make(input) {
     source: input.source || '', // texte dicté ou tapé d'origine
     dictatedAt: input.dictatedAt || null, // moment de la dictée (les dates relatives en dépendent)
     dictationId: input.dictationId || null, // tâches issues de la même dictée
+    repeat: withAnchor(input.repeat, input.start), // répétition (voir repeat.js) ; start/end = prochaine occurrence
+    perEvent: input.perEvent || null, // modèle « pour chaque prestation » : { from, to } en jours
+    event: !!input.event, // prestation : déclenche les modèles
+    fromTemplate: input.fromTemplate || null, // copie d'un modèle…
+    forEvent: input.forEvent || null, // … pour cette prestation
     createdAt: now,
     updatedAt: now,
     deletedAt: null, // rempli quand la tâche est dans la corbeille
@@ -78,15 +85,23 @@ export const store = {
     return created;
   },
 
+  /** Modifie une tâche ; renvoie la tâche modifiée. Une tâche répétée cochée passe à son occurrence suivante. */
   update(id, patch) {
+    let out = null;
     commit(
       tasks.map((t) => {
         if (t.id !== id) return t;
+        if (patch.done && t.repeat && t.start && !('start' in patch)) {
+          const next = nextOccurrence(t);
+          if (next) return (out = normalizeDates(touch(t, { ...patch, done: false, doneAt: null, start: next, end: next, lastDoneAt: Date.now() })));
+        }
+        if (patch.repeat) patch = { ...patch, repeat: withAnchor(patch.repeat, patch.start || t.start) };
         const next = normalizeDates(touch(t, patch));
         if ('done' in patch) next.doneAt = patch.done ? Date.now() : null;
-        return next;
+        return (out = next);
       })
     );
+    return out;
   },
 
   /** Met la tâche à la corbeille. */

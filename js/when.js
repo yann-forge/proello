@@ -10,6 +10,7 @@
 //  3. On retire tout ça du texte, pour que le titre ne garde que l'action.
 
 import { toISO } from './dates.js';
+import { findRepeat, placeRepeat } from './repeat.js';
 
 const WEEKDAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
 const MONTHS = {
@@ -317,6 +318,9 @@ export function extractTime(text) {
 }
 
 export function extractWhen(text, now = new Date()) {
+  // « tous les lundis », « chaque semaine », « tous les jours »… : une seule tâche répétée
+  const rep = findRepeat(text);
+  if (rep) text = text.slice(0, rep.index) + ' ' + text.slice(rep.index + rep.length);
   const clock = extractTime(text);
   text = clock.text;
   const dates = findDates(text, now);
@@ -403,6 +407,11 @@ export function extractWhen(text, now = new Date()) {
 
   let out = text;
   for (const [x, y] of cuts.sort((p, q) => q[0] - p[0])) out = out.slice(0, x) + ' ' + out.slice(y);
+  if (rep) {
+    // « à partir du 7 décembre », « jusqu'au 30 juin » : début et fin de la série
+    const placed = placeRepeat(rep.repeat, { start: start && toISO(start), end: end && toISO(end), now });
+    return { text: out, ...placed, repeats: [], time: clock.time || rep.time, endTime: clock.time ? clock.endTime : null };
+  }
   return {
     text: out,
     start: start && toISO(start),

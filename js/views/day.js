@@ -7,6 +7,7 @@
 import { QUADS, QUAD_ORDER, quadrantOf } from '../tasks.js';
 import { todayISO, addDays, fromISO, fmtShort, fmtTime } from '../dates.js';
 import { esc } from '../util.js';
+import { occurrences } from '../repeat.js';
 
 const HOUR_H = 52; // hauteur d'une heure (px)
 const DEFAULT_START = 7;
@@ -55,8 +56,9 @@ function columns(events) {
 export function renderDay(root, tasks, ctx, nav) {
   const day = nav.day;
   const today = todayISO();
-  const ofDay = tasks.filter((t) => t.start && t.start <= day && (t.end || t.start) >= day);
-  const timed = ofDay.filter((t) => t.time && (t.end || t.start) === day);
+  const onDay = (t) => (t.repeat ? occurrences(t, day, day).length > 0 : t.start <= day && (t.end || t.start) >= day);
+  const ofDay = tasks.filter((t) => t.start && !t.perEvent && onDay(t));
+  const timed = ofDay.filter((t) => t.time && (t.repeat || (t.end || t.start) === day));
   const untimed = ofDay.filter((t) => !timed.includes(t)).sort((a, b) => Number(a.done) - Number(b.done) || QUAD_ORDER.indexOf(quadrantOf(a)) - QUAD_ORDER.indexOf(quadrantOf(b)));
 
   const events = columns(
@@ -93,7 +95,7 @@ export function renderDay(root, tasks, ctx, nav) {
   const untimedHtml = untimed.length
     ? `<ul>${untimed
         .map((t) => {
-          const end = t.end || t.start;
+          const end = t.repeat ? day : t.end || t.start;
           const note =
             end !== day ? `→ ${end === addDays(day, 1) ? 'demain' : fmtShort(end)}${t.time ? ' ' + fmtTime(t.time) : ''}` : t.start !== day ? 'dernier jour' : '';
           return `<li><button class="day-card q-${quadrantOf(t)} ${t.done ? 'is-done' : ''}" data-edit="${t.id}">

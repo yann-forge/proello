@@ -4,10 +4,17 @@ import { QUADS, QUAD_ORDER, quadrantOf, sortTasks } from '../tasks.js';
 import { relLabel, todayISO, fmtTime } from '../dates.js';
 import { esc, lsGet, lsSet } from '../util.js';
 import { catChip } from '../profile-ui.js';
+import { describeRepeat, describeOffsets } from '../repeat.js';
 
 const state = lsGet('proello.list', { filter: 'todo', quad: null });
 
 export function dateChip(t) {
+  if (t.perEvent) return `<span class="date-chip tpl">Pour chaque prestation · ${describeOffsets(t.perEvent)}</span>`;
+  if (t.repeat && t.end) {
+    const late = !t.done && t.end < todayISO();
+    const time = t.time ? ` ${fmtTime(t.time, t.endTime)}` : '';
+    return `<span class="date-chip rep ${late ? 'late' : ''}" title="Tâche répétée">↻ ${esc(describeRepeat(t))}${time} · ${late ? 'en retard, ' : 'prochaine : '}${esc(relLabel(t.end).toLowerCase())}</span>`;
+  }
   if (!t.end && !t.time) return '';
   const time = t.time ? fmtTime(t.time, t.endTime) : '';
   if (!t.end) return `<span class="date-chip">${time}</span>`;
@@ -46,6 +53,7 @@ function item(t) {
       <button class="task-title" data-act="edit">${esc(t.title)}</button>
       <div class="task-meta">
         ${catChip(t)}
+        ${t.event ? '<span class="event-chip" title="Prestation : déclenche les tâches « pour chaque prestation »">★ Prestation</span>' : ''}
         ${detailBtn(t)}
         ${dateChip(t)}
         ${
@@ -62,7 +70,9 @@ function item(t) {
   </li>`;
 }
 
-export function renderList(root, tasks, ctx) {
+export function renderList(root, all, ctx) {
+  const templates = all.filter((t) => t.perEvent);
+  const tasks = all.filter((t) => !t.perEvent);
   const open = tasks.filter((t) => !t.done);
   const doneCount = tasks.length - open.length;
   const counts = Object.fromEntries(QUAD_ORDER.map((k) => [k, open.filter((t) => quadrantOf(t) === k).length]));
@@ -105,8 +115,20 @@ export function renderList(root, tasks, ctx) {
             <p class="muted">Appuie sur le micro et dicte tes tâches, en les séparant par « puis » ou « ensuite ».</p>
           </div>`
     }
+    ${
+      templates.length && state.filter !== 'done'
+        ? `<details class="tpl-section" ${state.tplOpen ? 'open' : ''}>
+            <summary>Pour chaque prestation <small>${templates.length}</small></summary>
+            <p class="muted small">Modèles sans date : ils sont copiés et datés automatiquement pour chaque tâche marquée « Prestation ».</p>
+            <ul class="task-list">${sortTasks(templates).map(item).join('')}</ul>
+          </details>`
+        : ''
+    }
     ${state.filter !== 'todo' && doneCount ? `<button class="link center" data-act="clear-done">Mettre les tâches terminées à la corbeille</button>` : ''}
   `;
+
+  const tpl = root.querySelector('.tpl-section');
+  if (tpl) tpl.ontoggle = () => ((state.tplOpen = tpl.open), lsSet('proello.list', state));
 
   root.onclick = (e) => {
     const f = e.target.closest('[data-filter]');
@@ -125,7 +147,7 @@ export function renderList(root, tasks, ctx) {
     if (!btn) return;
     if (btn.dataset.act === 'clear-done') return ctx.clearDone();
     const id = btn.closest('[data-id]')?.dataset.id;
-    const t = tasks.find((x) => x.id === id);
+    const t = all.find((x) => x.id === id);
     if (!t) return;
     if (btn.dataset.act === 'detail') {
       opened.has(id) ? opened.delete(id) : opened.add(id);

@@ -5,7 +5,7 @@ import { parseDictation } from './parser.js';
 import { summarize, MAX_WORDS } from './summarize.js';
 import { startDictation, voiceSupported, VOICE_ERRORS } from './voice.js';
 import { QUADS, quadrantOf } from './tasks.js';
-import { relLabel, todayISO, toLocalStamp, fmtTime } from './dates.js';
+import { relLabel, todayISO, toLocalStamp, fmtTime, fmtShort as fmtShortDate } from './dates.js';
 import { openReport, initReport } from './report.js';
 import { $, esc, lsGet, lsSet, uid } from './util.js';
 import { renderList } from './views/list.js';
@@ -14,6 +14,8 @@ import { renderMatrix } from './views/matrix.js';
 
 import { VERSION } from './version.js';
 import { readImport, withoutDuplicates, templateCSV, decodeBytes } from './importer.js';
+import { placeRepeat, missingForEvent, fromTemplate, EVENT_WORDS, describeRepeat, describeOffsets } from './repeat.js';
+import { dateChip } from './views/list.js';
 import { profiles } from './profiles.js';
 import { initProfileUI, showWelcomeIfNeeded, openProfileDialog, renderCatFilter, filterTasks, withCategories, categoryOptions } from './profile-ui.js';
 
@@ -22,7 +24,13 @@ let current = VIEWS[lsGet('proello.view', 'list')] ? lsGet('proello.view', 'list
 
 const ctx = {
   rerender: () => render(),
-  update: (id, patch) => store.update(id, patch),
+  update: (id, patch) => {
+    const before = store.get(id);
+    const after = store.update(id, patch);
+    // tâche répétée cochée : elle passe à la fois suivante
+    if (patch.done && before?.repeat && after && !after.done) toast(`Fait ! Prochaine fois : ${relLabel(after.start).toLowerCase()}${after.time ? ' ' + fmtTime(after.time) : ''}`);
+    return after;
+  },
   openEditor: (id) => openEditor(id),
   clearDone: () => clearDone(),
 };
@@ -89,9 +97,10 @@ $('#quickAdd').addEventListener('submit', (e) => {
   const at = new Date();
   const items = parseDictation(input.value, at);
   if (!items.length) return;
-  store.add(withSource(withCategories(items), input.value, at));
+  const created = store.add(withSource(withCategories(items), input.value, at));
   input.value = '';
   toast(`${plural(items.length, 'tâche')} ajoutée${items.length > 1 ? 's' : ''}`);
+  suggestEvent(created);
 });
 
 /* ---------- Dictée ---------- */
@@ -240,6 +249,7 @@ function reviewRow(t) {
   li.dataset.time = t.time || '';
   li.dataset.endTime = t.endTime || '';
   li.dataset.notes = t.notes || '';
+  li.dataset.repeat = t.repeat ? JSON.stringify(t.repeat) : '';
   li.innerHTML = `
     <input class="rv-title" value="${esc(t.title)}" aria-label="Titre court" maxlength="80" />
     ${t.notes ? `<p class="rv-detail"><span>Détail :</span> ${esc(t.notes)}</p>` : ''}
@@ -247,7 +257,7 @@ function reviewRow(t) {
     <div class="rv-meta">
       <button type="button" class="pill pill-u ${t.urgent ? 'on' : ''}" data-flag="urgent" aria-pressed="${!!t.urgent}">Urgent</button>
       <button type="button" class="pill pill-i ${t.important ? 'on' : ''}" data-flag="important" aria-pressed="${!!t.important}">Important</button>
-      ${t.end || t.time ? `<span class="date-chip">${t.end ? esc(t.start && t.start !== t.end ? relLabel(t.start) + ' → ' : '') + esc(relLabel(t.end)) : ''}${t.time ? (t.end ? ' · ' : '') + fmtTime(t.time, t.endTime) : ''}</span>` : ''}
+      ${dateChip(t)}
       <button type="button" class="rv-del" aria-label="Retirer">✕</button>
     </div>`;
   return li;
@@ -317,9 +327,11 @@ $('#review').addEventListener('close', () => {
     time: li.dataset.time || null,
     endTime: li.dataset.endTime || null,
     notes: li.dataset.notes || '',
+    repeat: li.dataset.repeat ? JSON.parse(li.dataset.repeat) : null,
   }));
   const created = store.add(withSource(items, reviewSource, reviewAt));
   if (created.length) toast(`${plural(created.length, 'tâche')} ajoutée${created.length > 1 ? 's' : ''}`);
+  suggestEvent(created);
 });
 
 /* ---------- Édition ---------- */
@@ -351,6 +363,13 @@ function openEditor(id) {
   form.endTime.value = t.endTime || '';
   form.notes.value = t.notes || '';
   form.done.checked = t.done;
+  form.repeat.value = t.repeat?.freq || '';
+  form.until.value = t.repeat?.until || '';
+  form.event.checked = !!t.event;
+  form.template.checked = !!t.perEvent;
+  form.tplFrom.value = t.perEvent?.from ?? -7;
+  form.tplTo.value = t.perEvent?.to ?? t.perEvent?.from ?? -1;
+  refreshEditorMode();
   form.category.innerHTML = categoryOptions(t.category);
   updateQuadHint();
   renderSource(t);
@@ -372,10 +391,84 @@ $('#editor').addEventListener('close', () => {
     endTime: form.time.value && form.endTime.value > form.time.value ? form.endTime.value : null,
     notes: form.notes.value,
     category: form.category.value || null,
+    event: form.event.checked,
   };
+  // modèle « pour chaque prestation » : pas de date, un décalage en jours
+  if (form.template.checked) {
+    const a = Number(form.tplFrom.value) || 0;
+    const b = form.tplTo.value === '' ? a : Number(form.tplTo.value) || 0;
+    Object.assign(patch, { perEvent: { from: Math.min(a, b), to: Math.max(a, b) }, start: null, end: null, repeat: null, event: false });
+  } else {
+    patch.perEvent = null;
+    // répétition : la tâche est placée sur sa prochaine occurrence à partir de la date de début
+    const freq = form.repeat.value;
+    if (freq) {
+      const keepDays = t.repeat?.freq === 'week' && freq === 'week' && t.repeat.days && (!patch.start || patch.start === t.start);
+      const rule = { freq, ...(keepDays ? { days: t.repeat.days } : {}) };
+      Object.assign(patch, placeRepeat(rule, { start: patch.start || todayISO(), end: form.until.value || null }));
+    } else patch.repeat = null;
+  }
   if (form.done.checked !== t.done) patch.done = form.done.checked;
-  store.update(editingId, patch);
+  const datesMoved = t.start !== patch.start || t.end !== patch.end;
+  const saved = ctx.update(editingId, patch);
+  if (saved?.event) syncEvent(saved, datesMoved);
+  if (saved?.perEvent && !t.perEvent) syncAllEvents();
 });
+
+/** Répétition / prestation / modèle : n'affiche que les champs utiles. */
+function refreshEditorMode() {
+  const tpl = form.template.checked;
+  $('#editorDates').hidden = tpl;
+  $('#editorRepeat').hidden = tpl;
+  $('#editorTpl').hidden = !tpl;
+  $('#editorEventRow').hidden = tpl;
+  $('#editorUntil').hidden = !form.repeat.value;
+}
+form.template.addEventListener('change', refreshEditorMode);
+form.repeat.addEventListener('change', refreshEditorMode);
+
+/* ---------- Prestations : copies datées des modèles « pour chaque prestation » ---------- */
+
+/** Crée les tâches manquantes d'une prestation ; déplace celles qui existent si sa date a changé. */
+function syncEvent(ev, moved = false) {
+  if (!ev) return 0;
+  const all = store.all();
+  if (moved) {
+    for (const c of all.filter((x) => x.forEvent === ev.id && !x.done)) {
+      const tpl = all.find((x) => x.id === c.fromTemplate);
+      if (tpl) {
+        const { start, end } = fromTemplate(tpl, ev);
+        store.update(c.id, { start, end });
+      }
+    }
+  }
+  const missing = missingForEvent(ev, all);
+  if (!missing.length) return 0;
+  store.add(withCategories(missing));
+  toast(`${plural(missing.length, 'tâche')} préparée${missing.length > 1 ? 's' : ''} pour « ${ev.title} »`);
+  return missing.length;
+}
+
+/** Après l'ajout de modèles : les prestations à venir reçoivent leurs tâches. */
+function syncAllEvents() {
+  for (const ev of store.all().filter((t) => t.event && t.start && t.end >= todayISO())) syncEvent(ev);
+}
+
+/** Nouvelle tâche datée qui ressemble à une prestation, alors que des modèles existent : on propose. */
+function suggestEvent(created) {
+  const n = store.all().filter((t) => t.perEvent).length;
+  if (!n) return;
+  const ev = created.find((t) => t.start && !t.repeat && !t.perEvent && EVENT_WORDS.test(`${t.title} ${t.source || ''}`));
+  if (!ev) return;
+  setTimeout(
+    () =>
+      toast(`« ${ev.title} » est une prestation ? ${plural(n, 'tâche')} à préparer`, {
+        label: 'Oui',
+        run: () => syncEvent(store.update(ev.id, { event: true })),
+      }),
+    1600
+  );
+}
 
 $('#editorReport').addEventListener('click', () => {
   const t = store.get(editingId);
@@ -577,7 +670,9 @@ function previewImport() {
   const dropped = result.skipped.filter((s) => !s.kept);
   const row = (t) => {
     const bits = [
-      t.start ? (t.start !== t.end ? `${relLabel(t.start)} → ${relLabel(t.end)}` : relLabel(t.end)) : '',
+      t.perEvent ? `Pour chaque prestation (${describeOffsets(t.perEvent)})` : '',
+      t.repeat ? `↻ ${describeRepeat(t)} dès ${relLabel(t.start).toLowerCase()}${t.repeat.until ? ` jusqu'au ${fmtShortDate(t.repeat.until)}` : ''}` : '',
+      t.start && !t.repeat ? (t.start !== t.end ? `${relLabel(t.start)} → ${relLabel(t.end)}` : relLabel(t.end)) : '',
       t.time ? fmtTime(t.time, t.endTime) : '',
       cats[t.category] || '',
       t.urgent ? 'Urgent' : '',
@@ -605,6 +700,7 @@ $('#importGo').addEventListener('click', () => {
   const before = store.all();
   const added = store.add(pending);
   $('#importDlg').close();
+  if (added.some((t) => t.perEvent)) setTimeout(syncAllEvents, 2500);
   toast(`${plural(added.length, 'tâche')} importée${added.length > 1 ? 's' : ''}`, { label: 'Annuler', run: () => store.replaceAll(before) });
 });
 
