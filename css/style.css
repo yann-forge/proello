@@ -217,7 +217,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 120px; }
 .g-day.today b { background: var(--orange-strong); color: #fff; border-radius: 999px; min-width: 26px; padding: 2px 6px; text-align: center; }
 
 .g-corner {
-  position: sticky; left: 0; z-index: 2; flex: 0 0 var(--name-w); width: var(--name-w); display: flex; align-items: flex-end;
+  position: sticky; left: 0; z-index: 5; flex: 0 0 var(--name-w); width: var(--name-w); display: flex; align-items: flex-end;
   padding: 0 8px 8px; font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);
   background: var(--surface); border-right: 1px solid var(--line);
 }
@@ -794,3 +794,15 @@ button.g-day:hover b { color: var(--orange-ink); }
 body[data-view='gantt'].g-focus #quickAdd,
 body[data-view='gantt'].g-focus #catFilter,
 body[data-view='gantt'].g-focus .g-legend { display: none; }
+
+/* Semaine / Mois : le défilement s'arrête sur un lundi (ou un 1er), calé tout à gauche, juste après les titres */
+.gantt { scroll-snap-type: x mandatory; scroll-padding-left: var(--name-w); }
+.g-day.snap { scroll-snap-align: start; }
+/* au mois, les jours sont étroits : pas de lettre, le numéro du lundi déborde sur les jours suivants */
+.gantt.month .g-day { padding-left: 0; padding-right: 0; align-items: flex-start; overflow: visible; }
+.gantt.month .g-day span { display: none; }
+.gantt.month .g-day b { font-size: 0.72rem; white-space: nowrap; }
+.gantt.month .g-day.today b { min-width: 0; padding: 1px 4px; position: relative; z-index: 1; }
+.gantt.month .g-day.snap { border-left: 1px solid var(--line); }
+.gantt.month .g-grid div { border-right: 0; }
+.gantt.month .g-bar { border-radius: 4px; border-width: 1.5px; }

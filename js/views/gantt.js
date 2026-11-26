@@ -2,8 +2,10 @@
 // - une ligne par tâche, son titre dans la colonne de gauche (petit, sur plusieurs lignes si besoin) ;
 // - rien n'est écrit dans les barres, qui se déplacent / s'étirent au doigt ou à la souris ;
 // - toutes les tâches datées sont affichées : la frise va de la plus ancienne à la plus lointaine
-//   et se parcourt en faisant défiler (en largeur et en hauteur). Largeur des jours fixe (lisible au doigt) ;
-//   les tâches terminées n'y figurent pas (elles restent dans la liste).
+//   et se parcourt en faisant défiler (en largeur et en hauteur) ;
+// - deux affichages : Semaine (7 jours, le lundi tout à gauche) et Mois (le 1er tout à gauche) ;
+//   le défilement s'arrête toujours sur un lundi / un 1er du mois ;
+// - les tâches terminées n'y figurent pas (elles restent dans la liste).
 
 import { quadrantOf, sortTasks, sortPlanning } from '../tasks.js';
 import { todayISO, addDays, diffDays, fromISO, fmtShort, fmtTime } from '../dates.js';
@@ -15,6 +17,21 @@ const WD = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 const fmtMonth = new Intl.DateTimeFormat('fr-FR', { month: 'short' });
 // start : premier jour de la frise ; view : jour affiché au bord gauche 
 const state = { start: null, view: null, day: null }; // day : vue journée ouverte
+const MODES = [
+  { id: 'week', label: 'Semaine' },
+  { id: 'month', label: 'Mois' },
+];
+const fmtMonthLong = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' });
+const mondayOf = (d) => addDays(d, -((fromISO(d).getDay() + 6) % 7));
+const firstOf = (d) => d.slice(0, 8) + '01';
+/** 1er du mois décalé de n mois. */
+function shiftMonth(d, n) {
+  const y = +d.slice(0, 4);
+  const m = +d.slice(5, 7) - 1 + n;
+  const yy = y + Math.floor(m / 12);
+  const mm = ((m % 12) + 12) % 12;
+  return `${yy}-${String(mm + 1).padStart(2, '0')}-01`;
+}
 const MAX_DAYS = 1100; // garde-fou : environ trois ans de frise
 const HOLD_MS = 1000; // appui long (au doigt) avant de pouvoir déplacer une barre
 const drag = { armed: false };
@@ -58,8 +75,8 @@ export function renderGantt(root, tasks, ctx) {
       day: state.day,
       spans: [{ days: 14, label: '← Planning' }],
       setDay: (d) => ((state.day = d), ctx.rerender()),
-      leave: (span) => {
-        state.view = addDays(state.day, -1);
+      leave: () => {
+        state.view = state.day;
         state.day = null;
         ctx.rerender();
       },
@@ -67,31 +84,36 @@ export function renderGantt(root, tasks, ctx) {
   }
   // jour au bord gauche : lu sur la frise déjà affichée (plus sûr que le dernier évènement de défilement)
   const old = root.querySelector('.gantt[data-from]');
-  if (old) state.view = addDays(old.dataset.from, Math.round(old.scrollLeft / Number(old.dataset.dayW)));
+  if (old && !state.jump) state.view = addDays(old.dataset.from, Math.round(old.scrollLeft / Number(old.dataset.dayW)));
+  state.jump = false;
   const oldTop = old ? old.scrollTop : 0;
   if (!old) document.body.classList.remove('g-focus'); // on arrive sur le planning : tout est visible
   const compact = lsGet('proello.gantt.compact', false);
-  if (!state.view) state.view = addDays(today, -1);
-  const zoom = 14; // jours visibles sur grand écran ; sur téléphone, la largeur minimale d'un jour l'emporte
-  const step = 7; // ‹ › : une semaine
+  const mode = lsGet('proello.gantt.mode', 'week') === 'month' ? 'month' : 'week';
+  const month = mode === 'month';
+  const periodStart = month ? firstOf : mondayOf; // début de semaine (lundi) ou de mois (1er)
+  const nextPeriod = (d, n) => (month ? shiftMonth(d, n) : addDays(mondayOf(d), 7 * n));
+  state.view = periodStart(state.view || today);
   const avail = Math.max(0, root.clientWidth - 2);
   // colonne des titres : étroite sur téléphone
   const nameW = avail < 520 ? 104 : avail < 900 ? 150 : 190;
-  const dayW = Math.max(zoom > 14 ? 26 : 34, Math.floor((avail - nameW) / zoom));
+  // la semaine ou le mois entier tient dans la largeur de l'écran
+  const dayW = month ? Math.max(7, Math.floor((avail - nameW) / 31)) : Math.max(34, Math.floor((avail - nameW) / 7));
 
   tasks = tasks.filter((t) => !t.perEvent); // modèles « pour chaque prestation » : pas de date propre
   const scheduled = tasks.filter((t) => t.start && !t.done); // les terminées restent dans la liste, pas ici
   // la frise couvre toutes les tâches datées (et au moins l'écran autour d'aujourd'hui), avec un peu de marge
-  let from = addDays(today, -1);
-  let to = addDays(today, zoom - 2);
+  let from = today;
+  let to = today;
   for (const t of scheduled) {
     const end = t.repeat ? t.repeat.until || t.start : t.end;
     if (t.start < from) from = t.start;
     if (end > to) to = end;
   }
-  from = addDays(from, -1);
-  to = addDays(to, 7);
+  // de quoi caler la dernière semaine / le dernier mois tout à gauche
+  to = month ? addDays(shiftMonth(to, 1), 30) : addDays(mondayOf(to), 13);
   if (diffDays(from, to) > MAX_DAYS) from = addDays(to, -MAX_DAYS);
+  from = periodStart(from);
   state.start = from;
   const last = to;
   const span = diffDays(from, to) + 1;
@@ -107,8 +129,13 @@ export function renderGantt(root, tasks, ctx) {
     .map((d, i) => {
       const dt = fromISO(d);
       const wd = dt.getDay();
-      const month = i === 0 || dt.getDate() === 1 ? `<em>${fmtMonth.format(dt)}</em>` : '';
-      return `<button class="g-day ${wd === 0 || wd === 6 ? 'we' : ''} ${d === today ? 'today' : ''}" data-day="${d}" aria-label="Voir la journée du ${fmtShort(d)}">${month}<span>${WD[wd]}</span><b>${dt.getDate()}</b></button>`;
+      const mo = i === 0 || dt.getDate() === 1 ? `<em>${fmtMonth.format(dt)}</em>` : '';
+      const snap = month ? dt.getDate() === 1 : wd === 1; // points d'arrêt du défilement
+      // au mois, les jours sont étroits : on n'écrit que le numéro des lundis (et aujourd'hui),
+      // sauf en toute fin de mois où il déborderait sur le mois suivant
+      const lastDay = new Date(dt.getFullYear(), dt.getMonth() + 1, 0).getDate();
+      const num = !month || d === today || (wd === 1 && dt.getDate() <= lastDay - 2) ? `<b>${dt.getDate()}</b>` : '';
+      return `<button class="g-day ${wd === 0 || wd === 6 ? 'we' : ''} ${d === today ? 'today' : ''} ${snap ? 'snap' : ''}" data-day="${d}" aria-label="Voir la journée du ${fmtShort(d)}">${mo}<span>${WD[wd]}</span>${num}</button>`;
     })
     .join('');
 
@@ -149,6 +176,7 @@ export function renderGantt(root, tasks, ctx) {
 
   root.innerHTML = `
     <div class="gantt-toolbar">
+      <div class="seg">${MODES.map((m) => `<button data-mode="${m.id}" class="${m.id === mode ? 'on' : ''}">${m.label}</button>`).join('')}</div>
       <button class="btn ghost small compact-btn ${compact ? 'on' : ''}" data-compact aria-pressed="${compact}" title="Lignes plus serrées pour voir plus de tâches">☰ Compact</button>
       <div class="g-nav">
         <button class="icon-btn" data-nav="prev" aria-label="Plus tôt">‹</button>
@@ -158,7 +186,7 @@ export function renderGantt(root, tasks, ctx) {
       <span class="range-label"></span>
     </div>
     ${legendHtml()}
-    <div class="gantt ${compact ? 'compact' : ''}" data-from="${from}" data-day-w="${dayW}" style="--day-w:${dayW}px;--days:${span};--name-w:${nameW}px">
+    <div class="gantt ${mode} ${compact ? 'compact' : ''}" data-from="${from}" data-day-w="${dayW}" style="--day-w:${dayW}px;--days:${span};--name-w:${nameW}px">
       <div class="g-inner">
         <div class="g-head"><div class="g-corner">Tâches</div>${head}</div>
         <div class="g-body">
@@ -199,7 +227,8 @@ export function renderGantt(root, tasks, ctx) {
   const shown = () => Math.max(1, Math.floor((box.clientWidth - nameW) / dayW));
   const showRange = () => {
     const a = addDays(from, Math.round(box.scrollLeft / dayW));
-    const b = addDays(a, shown() - 1);
+    if (month) return (label.textContent = fmtMonthLong.format(fromISO(addDays(a, Math.floor(shown() / 2)))));
+    const b = addDays(a, Math.min(shown(), 7) - 1);
     // l'année quand on n'est plus dans l'année en cours
     const y = b.slice(0, 4) !== today.slice(0, 4) ? ` ${b.slice(0, 4)}` : '';
     label.textContent = `${fmtShort(a)} – ${fmtShort(b)}${y}`;
@@ -221,12 +250,24 @@ export function renderGantt(root, tasks, ctx) {
   winY.reset(scrollY);
   // revenu tout en haut (ex. après un changement d'affichage) : on réaffiche tout
   if (box.scrollTop < 8 && scrollY < 8) document.body.classList.remove('g-focus');
-  const scrollToDay = (d) => box.scrollTo({ left: Math.max(0, diffDays(from, d)) * dayW, behavior: 'smooth' });
+  // saut direct (un défilement animé se bat avec l'arrêt sur les lundis)
+  const scrollToDay = (d) => {
+    box.scrollLeft = Math.max(0, diffDays(from, d)) * dayW;
+    state.view = d < from ? from : d;
+    showRange();
+  };
 
   root.onclick = (e) => {
     const dayBtn = e.target.closest('[data-day]');
     if (dayBtn) {
       state.day = dayBtn.dataset.day;
+      return ctx.rerender();
+    }
+    const modeBtn = e.target.closest('[data-mode]');
+    if (modeBtn) {
+      lsSet('proello.gantt.mode', modeBtn.dataset.mode);
+      state.view = today; // on recale sur la semaine / le mois en cours
+      state.jump = true;
       return ctx.rerender();
     }
     if (e.target.closest('[data-compact]')) {
@@ -236,7 +277,8 @@ export function renderGantt(root, tasks, ctx) {
     const nav = e.target.closest('[data-nav]');
     if (nav) {
       const n = nav.dataset.nav;
-      return scrollToDay(n === 'today' ? addDays(todayISO(), -1) : addDays(state.view, (n === 'next' ? 1 : -1) * step));
+      const cur = periodStart(state.view < from ? from : state.view);
+      return scrollToDay(n === 'today' ? periodStart(todayISO()) : nextPeriod(cur, n === 'next' ? 1 : -1));
     }
     const edit = e.target.closest('[data-edit]');
     if (edit) return ctx.openEditor(edit.dataset.edit);
