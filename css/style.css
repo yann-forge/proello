@@ -783,3 +783,25 @@ button.g-day:hover b { color: var(--orange-ink); }
 /* bouton de gestion des types dans la fiche : bien visible */
 .more-panel .types-btn { justify-self: stretch; justify-content: center; border-radius: var(--radius-sm); padding-top: 10px; padding-bottom: 10px; line-height: 1.25; font-size: 0.86rem; color: #5b4396; border-color: #cbbcea; background: #f3eefc; font-weight: 800; }
 .more-panel .types-btn:hover { background: #e9e0fa; }
+
+/* ---------- Planning : groupes repliables, mode compact, plein écran au défilement ---------- */
+.g-group {
+  position: relative; z-index: 3; width: calc(var(--name-w) + var(--days) * var(--day-w));
+  background: var(--surface-2); border-bottom: 1px solid var(--line); border-top: 1px solid var(--line);
+}
+.g-group-btn {
+  position: sticky; left: 0; display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border: 0; background: none;
+  font: inherit; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink); cursor: pointer;
+}
+.g-group-btn small { padding: 1px 7px; border-radius: 999px; background: var(--surface); color: var(--muted); font-size: 0.7rem; }
+.g-caret { width: 12px; color: var(--muted); }
+.compact-btn.on { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.gantt.compact .g-row { min-height: 26px; }
+.gantt.compact .g-name { padding: 2px 8px 2px 9px; }
+.gantt.compact .g-name span { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gantt.compact .g-name small { display: none; }
+.gantt.compact .g-bar { top: 3px; bottom: 3px; min-height: 18px; border-radius: 5px; }
+.gantt.compact .g-group-btn { padding: 4px 10px; }
+body[data-view='gantt'].g-focus #quickAdd,
+body[data-view='gantt'].g-focus #catFilter,
+body[data-view='gantt'].g-focus .g-legend { display: none; }
