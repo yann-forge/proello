@@ -203,9 +203,13 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 120px; }
 .g-nav { display: flex; align-items: center; gap: 4px; }
 .range-label { font-weight: 800; color: var(--muted); margin-left: auto; }
 
-.gantt { overflow-x: auto; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); overscroll-behavior-x: contain; }
+/* la frise entière défile dans son cadre, en largeur et en hauteur ; les jours et les titres restent visibles */
+.gantt {
+  overflow: auto; max-height: max(320px, calc(100dvh - 250px)); border-radius: var(--radius); background: var(--surface);
+  box-shadow: var(--shadow); overscroll-behavior-x: contain;
+}
 .g-inner { width: calc(var(--name-w) + var(--days) * var(--day-w)); }
-.g-head { display: flex; position: sticky; top: 0; z-index: 3; background: var(--surface); border-bottom: 1px solid var(--line); }
+.g-head { display: flex; position: sticky; top: 0; z-index: 4; background: var(--surface); border-bottom: 1px solid var(--line); }
 .g-day { position: relative; flex: 0 0 var(--day-w); width: var(--day-w); padding: 18px 0 8px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 0.72rem; color: var(--muted); }
 .g-day b { font-size: 0.95rem; color: var(--ink); }
 .g-day em { position: absolute; top: 3px; left: 4px; font-style: normal; font-weight: 800; font-size: 0.68rem; color: var(--orange-ink); text-transform: uppercase; white-space: nowrap; }
@@ -261,7 +265,6 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 120px; }
 .g-handle.r { right: -2px; }
 .g-handle::after { content: ''; position: absolute; top: 8px; bottom: 8px; left: 5px; width: 2px; border-radius: 2px; background: var(--q-strong); opacity: 0; transition: opacity 0.15s; }
 .g-bar:hover .g-handle::after { opacity: 1; }
-.g-outside { display: flex; justify-content: space-between; gap: 10px; margin-top: 6px; font-size: 0.88rem; }
 .g-empty { position: relative; margin: 30px auto; padding: 0 20px; max-width: 420px; text-align: center; color: var(--muted); }
 
 .unscheduled { margin-top: 22px; }
@@ -682,6 +685,8 @@ button.g-day:hover b { color: var(--orange-ink); }
 @media (max-width: 760px) {
   .day { gap: 6px; }
   body[data-view='gantt'] main { padding-bottom: calc(170px + var(--safe-b)); }
+  /* téléphone : le cadre du planning remplit l'écran au-dessus de la barre d'onglets */
+  .gantt { max-height: max(300px, calc(100dvh - 120px - var(--safe-b))); }
   .day-untimed { padding: 8px 6px; }
   .day-card { padding: 6px 7px; }
   .day-card span { font-size: 0.74rem; }
@@ -766,8 +771,6 @@ button.g-day:hover b { color: var(--orange-ink); }
 .chip-btn { padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-size: 0.82rem; font-weight: 700; }
 .tpl-group { margin: 12px 0 6px; font-size: 0.85rem; color: var(--sand-ink); }
 
-/* le lien « N tâches plus tard » ne doit pas finir sous le bouton micro */
-.g-outside { margin: 0 0 8px; }
 .more-panel select {
   width: 100%; min-width: 0; height: 44px; padding: 0 10px; border-radius: var(--radius-sm); border: 1px solid var(--line);
   background: var(--surface-2); font-weight: 700; outline: none; text-overflow: ellipsis;

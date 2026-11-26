@@ -1,5 +1,5 @@
 // Version de l'app (affichée dans le menu et jointe aux rapports d'erreur)
-export const VERSION = '0.13.1';
+export const VERSION = '0.14.0';
 
 // Dépôt privé où arrivent les rapports d'erreur
 export const REPORTS_REPO = 'yann-forge/proello-retours';

@@ -1,6 +1,8 @@
 // Vue 2 : planning façon Gantt :
 // - une ligne par tâche, son titre dans la colonne de gauche (petit, sur plusieurs lignes si besoin) ;
-// - rien n'est écrit dans les barres, qui se déplacent / s'étirent au doigt ou à la souris.
+// - rien n'est écrit dans les barres, qui se déplacent / s'étirent au doigt ou à la souris ;
+// - toutes les tâches datées sont affichées : la frise va de la plus ancienne à la plus lointaine
+//   et se parcourt en faisant défiler (en largeur et en hauteur). Semaine / 2 semaines / Mois = zoom.
 
 import { quadrantOf, sortTasks } from '../tasks.js';
 import { todayISO, addDays, diffDays, fromISO, fmtShort, fmtTime } from '../dates.js';
@@ -15,7 +17,9 @@ const SPANS = [
 ];
 const WD = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 const fmtMonth = new Intl.DateTimeFormat('fr-FR', { month: 'short' });
-const state = { start: null, span: lsGet('proello.gantt.span', 14), day: null }; // day : vue journée ouverte
+// start : premier jour de la frise ; view : jour affiché au bord gauche ; span : nombre de jours visibles (zoom)
+const state = { start: null, view: null, span: lsGet('proello.gantt.span', 14), day: null }; // day : vue journée ouverte
+const MAX_DAYS = 1100; // garde-fou : environ trois ans de frise
 const HOLD_MS = 1000; // appui long (au doigt) avant de pouvoir déplacer une barre
 const drag = { armed: false };
 
@@ -36,7 +40,7 @@ export function renderGantt(root, tasks, ctx) {
       spans: SPANS,
       setDay: (d) => ((state.day = d), ctx.rerender()),
       leave: (span) => {
-        state.start = addDays(state.day, -1);
+        state.view = addDays(state.day, -1);
         state.span = span;
         state.day = null;
         lsSet('proello.gantt.span', span);
@@ -44,24 +48,38 @@ export function renderGantt(root, tasks, ctx) {
       },
     });
   }
-  if (!state.start) state.start = addDays(today, -1);
-  const span = state.span;
-  const spanDef = SPANS.find((s) => s.days === span) || SPANS[1];
-  const last = addDays(state.start, span - 1);
+  // jour au bord gauche : lu sur la frise déjà affichée (plus sûr que le dernier évènement de défilement)
+  const old = root.querySelector('.gantt[data-from]');
+  if (old) state.view = addDays(old.dataset.from, Math.round(old.scrollLeft / Number(old.dataset.dayW)));
+  if (!state.view) state.view = addDays(today, -1);
+  const zoom = state.span;
+  const spanDef = SPANS.find((x) => x.days === zoom) || SPANS[1];
   const avail = Math.max(0, root.clientWidth - 2);
   // colonne des titres : étroite sur téléphone
   const nameW = avail < 520 ? 104 : avail < 900 ? 150 : 190;
-  const dayW = Math.max(span > 14 ? 26 : 34, Math.floor((avail - nameW) / span));
-  const prevScroll = root.querySelector('.gantt')?.scrollLeft;
+  const dayW = Math.max(zoom > 14 ? 26 : 34, Math.floor((avail - nameW) / zoom));
 
   tasks = tasks.filter((t) => !t.perEvent); // modèles « pour chaque prestation » : pas de date propre
   const scheduled = tasks.filter((t) => t.start);
-  // tâche répétée : visible si une de ses occurrences tombe dans la période
-  const visible = scheduled.filter((t) => (t.repeat ? occurrences(t, state.start, last).length : t.end >= state.start && t.start <= last));
-  const before = scheduled.filter((t) => t.end < state.start && !t.done).sort((a, b) => (a.end < b.end ? 1 : -1));
-  const after = scheduled.filter((t) => t.start > last && !t.done).sort((a, b) => (a.start < b.start ? -1 : 1));
+  // la frise couvre toutes les tâches datées (et au moins l'écran autour d'aujourd'hui), avec un peu de marge
+  let from = addDays(today, -1);
+  let to = addDays(today, zoom - 2);
+  for (const t of scheduled) {
+    const end = t.repeat ? t.repeat.until || t.start : t.end;
+    if (t.start < from) from = t.start;
+    if (end > to) to = end;
+  }
+  from = addDays(from, -1);
+  to = addDays(to, 7);
+  if (diffDays(from, to) > MAX_DAYS) from = addDays(to, -MAX_DAYS);
+  state.start = from;
+  const last = to;
+  const span = diffDays(from, to) + 1;
+
+  // tâche répétée : visible si une de ses occurrences tombe dans la frise
+  const visible = scheduled.filter((t) => (t.repeat ? occurrences(t, from, last).length : t.end >= from && t.start <= last));
   const unscheduled = sortTasks(tasks.filter((t) => !t.start && !t.done));
-  const days = Array.from({ length: span }, (_, i) => addDays(state.start, i));
+  const days = Array.from({ length: span }, (_, i) => addDays(from, i));
   // ordre des lignes : à faire d'abord, puis par date de début, puis par priorité
   const rows = sortTasks(visible).sort((x, y) => Number(x.done) - Number(y.done) || (x.start < y.start ? -1 : x.start > y.start ? 1 : 0));
 
@@ -108,27 +126,19 @@ export function renderGantt(root, tasks, ctx) {
     .join('');
 
   const todayIdx = diffDays(state.start, today);
-  const outside =
-    before.length || after.length
-      ? `<div class="g-outside">
-          ${before.length ? `<button class="link" data-jump="${before[0].start}">‹ ${before.length} tâche${before.length > 1 ? 's' : ''} plus tôt</button>` : '<span></span>'}
-          ${after.length ? `<button class="link" data-jump="${after[0].start}">${after.length} tâche${after.length > 1 ? 's' : ''} plus tard ›</button>` : ''}
-        </div>`
-      : '';
 
   root.innerHTML = `
     <div class="gantt-toolbar">
-      <div class="seg">${SPANS.map((s) => `<button data-span="${s.days}" class="${s.days === span ? 'on' : ''}">${s.label}</button>`).join('')}</div>
+      <div class="seg">${SPANS.map((s) => `<button data-span="${s.days}" class="${s.days === zoom ? 'on' : ''}">${s.label}</button>`).join('')}</div>
       <div class="g-nav">
-        <button class="icon-btn" data-nav="prev" aria-label="Période précédente">‹</button>
+        <button class="icon-btn" data-nav="prev" aria-label="Plus tôt">‹</button>
         <button class="btn ghost small" data-nav="today">Aujourd'hui</button>
-        <button class="icon-btn" data-nav="next" aria-label="Période suivante">›</button>
+        <button class="icon-btn" data-nav="next" aria-label="Plus tard">›</button>
       </div>
-      <span class="range-label">${fmtShort(state.start)} – ${fmtShort(last)}</span>
+      <span class="range-label"></span>
     </div>
     ${legendHtml()}
-    ${outside}
-    <div class="gantt" style="--day-w:${dayW}px;--days:${span};--name-w:${nameW}px">
+    <div class="gantt" data-from="${from}" data-day-w="${dayW}" style="--day-w:${dayW}px;--days:${span};--name-w:${nameW}px">
       <div class="g-inner">
         <div class="g-head"><div class="g-corner">Tâches</div>${head}</div>
         <div class="g-body">
@@ -163,7 +173,24 @@ export function renderGantt(root, tasks, ctx) {
     }
   `;
 
-  if (prevScroll != null) root.querySelector('.gantt').scrollLeft = prevScroll;
+  // on revient au même jour qu'avant (aujourd'hui la première fois), même si la frise s'est allongée
+  const box = root.querySelector('.gantt');
+  const label = root.querySelector('.range-label');
+  const shown = () => Math.max(1, Math.floor((box.clientWidth - nameW) / dayW));
+  const showRange = () => {
+    const a = addDays(from, Math.round(box.scrollLeft / dayW));
+    const b = addDays(a, shown() - 1);
+    // l'année quand on n'est plus dans l'année en cours
+    const y = b.slice(0, 4) !== today.slice(0, 4) ? ` ${b.slice(0, 4)}` : '';
+    label.textContent = `${fmtShort(a)} – ${fmtShort(b)}${y}`;
+  };
+  box.scrollLeft = Math.max(0, diffDays(from, state.view)) * dayW;
+  showRange();
+  box.onscroll = () => {
+    state.view = addDays(from, Math.round(box.scrollLeft / dayW));
+    showRange();
+  };
+  const scrollToDay = (d) => box.scrollTo({ left: Math.max(0, diffDays(from, d)) * dayW, behavior: 'smooth' });
 
   root.onclick = (e) => {
     const dayBtn = e.target.closest('[data-day]');
@@ -180,13 +207,7 @@ export function renderGantt(root, tasks, ctx) {
     const nav = e.target.closest('[data-nav]');
     if (nav) {
       const n = nav.dataset.nav;
-      state.start = n === 'today' ? addDays(todayISO(), -1) : addDays(state.start, (n === 'next' ? 1 : -1) * spanDef.step);
-      return ctx.rerender();
-    }
-    const jump = e.target.closest('[data-jump]');
-    if (jump) {
-      state.start = addDays(jump.dataset.jump, -1);
-      return ctx.rerender();
+      return scrollToDay(n === 'today' ? addDays(todayISO(), -1) : addDays(state.view, (n === 'next' ? 1 : -1) * spanDef.step));
     }
     const edit = e.target.closest('[data-edit]');
     if (edit) return ctx.openEditor(edit.dataset.edit);
