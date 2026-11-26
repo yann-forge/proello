@@ -31,7 +31,7 @@ L'utilisateur écrit en français : répondre en français, et garder l'interfac
 - `js/event-types.js` : types de prestation (`eventType` sur la prestation, `perEvent.type` sur le modèle ; modèle sans type = tous)
   et mot employé selon le profil (prestation, mission, compétition…). Réglages avancés de la fiche derrière le bouton 🔧.
 - `js/report.js` : formulaire « Signaler une erreur » → fiche GitHub pré-remplie dans le dépôt privé.
-- `tests/` : `parser`, `periods`, `themes`, `categories`, `store`, `import`, `repeat`, `conflicts` (phrases pièges entre règles)
+- `tests/` : `parser`, `periods`, `themes`, `categories`, `store`, `import`, `repeat`, `planning` (ordre des lignes, `sortPlanning` dans `tasks.js`), `conflicts` (phrases pièges entre règles)
   et `reports.test.mjs` (alimenté par `tests/reports.json`). Toute nouvelle règle doit garder `conflicts.test.mjs` au vert.
 
 ## Traiter les rapports d'erreur

@@ -51,3 +51,28 @@ export function sortTasks(list) {
       a.createdAt - b.createdAt
   );
 }
+
+// Planning : retard (en jours) accepté selon le cadran avant de passer derrière une tâche moins prioritaire.
+// Une tâche « Faire maintenant » dans 3 jours passe ainsi devant une tâche « Plus tard » de demain.
+const PLAN_DELAY = { do: 0, plan: 5, delegate: 7, later: 10 };
+const dayNum = (iso) => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) / 86400000;
+
+/**
+ * Ordre des lignes du planning :
+ * 1. à faire aujourd'hui (commencée, du jour ou en retard), quelle que soit sa priorité — par cadran puis échéance ;
+ * 2. puis les suivantes, selon leur proximité et leur priorité (jours d'attente + délai du cadran) ;
+ * 3. les terminées à la fin.
+ */
+export function sortPlanning(list, today) {
+  const t0 = dayNum(today);
+  const rank = (t) => {
+    const q = quadrantOf(t);
+    if (t.done) return [2, dayNum(t.start), 0];
+    if (t.start <= today) return [0, QUAD_ORDER.indexOf(q), dayNum(t.end)];
+    return [1, dayNum(t.start) - t0 + PLAN_DELAY[q], QUAD_ORDER.indexOf(q)];
+  };
+  return [...list]
+    .map((t) => [rank(t), t])
+    .sort(([a, x], [b, y]) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2] || cmpDate(x.start, y.start) || x.createdAt - y.createdAt)
+    .map(([, t]) => t);
+}

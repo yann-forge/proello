@@ -4,7 +4,7 @@
 // - toutes les tâches datées sont affichées : la frise va de la plus ancienne à la plus lointaine
 //   et se parcourt en faisant défiler (en largeur et en hauteur). Semaine / 2 semaines / Mois = zoom.
 
-import { quadrantOf, sortTasks } from '../tasks.js';
+import { quadrantOf, sortTasks, sortPlanning } from '../tasks.js';
 import { todayISO, addDays, diffDays, fromISO, fmtShort, fmtTime } from '../dates.js';
 import { renderDay, legendHtml } from './day.js';
 import { esc, lsGet, lsSet } from '../util.js';
@@ -80,8 +80,8 @@ export function renderGantt(root, tasks, ctx) {
   const visible = scheduled.filter((t) => (t.repeat ? occurrences(t, from, last).length : t.end >= from && t.start <= last));
   const unscheduled = sortTasks(tasks.filter((t) => !t.start && !t.done));
   const days = Array.from({ length: span }, (_, i) => addDays(from, i));
-  // ordre des lignes : à faire d'abord, puis par date de début, puis par priorité
-  const rows = sortTasks(visible).sort((x, y) => Number(x.done) - Number(y.done) || (x.start < y.start ? -1 : x.start > y.start ? 1 : 0));
+  // ordre des lignes : à faire aujourd'hui d'abord, puis priorité et proximité mêlées (voir sortPlanning)
+  const rows = sortPlanning(visible, today);
 
   const head = days
     .map((d, i) => {
