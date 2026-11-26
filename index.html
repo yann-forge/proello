@@ -154,7 +154,7 @@
         <div class="menu-list">
           <button type="button" id="profileBtn" class="menu-item">👤 Profil et catégories <small id="profileLabel" class="muted"></small></button>
           <button type="button" id="exportBtn" class="menu-item">⬆︎ Exporter une sauvegarde (JSON)</button>
-          <label class="menu-item">⬇︎ Importer une sauvegarde<input type="file" id="importInput" accept="application/json,.json" hidden /></label>
+          <button type="button" id="importBtn" class="menu-item">⬇︎ Importer des tâches <small class="muted">(tableau, liste, sauvegarde)</small></button>
           <button type="button" id="trashBtn" class="menu-item">🗑 Corbeille <small id="trashCount" class="muted"></small></button>
           <button type="button" id="clearDoneBtn" class="menu-item">✓ Mettre les tâches terminées à la corbeille</button>
           <button type="button" id="shortenBtn" class="menu-item">✂︎ Raccourcir les titres trop longs</button>
@@ -217,6 +217,37 @@
         <footer>
           <button type="button" id="trashEmpty" class="btn danger small">Vider la corbeille</button>
           <button value="close" class="btn primary">Fermer</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <!-- Import de tâches en nombre -->
+    <dialog id="importDlg" class="sheet">
+      <form method="dialog">
+        <header>
+          <h2>Importer des tâches</h2>
+          <button value="cancel" class="icon-btn" aria-label="Fermer">✕</button>
+        </header>
+        <ol class="import-steps">
+          <li>
+            <b>Un tableau</b> (Excel, Google Sheets…) : pars du modèle, une ligne par tâche, puis enregistre-le en <b>CSV</b>.
+            <button type="button" id="importTemplate" class="btn ghost small">⬇︎ Télécharger le modèle</button>
+          </li>
+          <li><b>Une liste</b> : une tâche par ligne, écrite comme tu la dicterais (« appeler Paul demain urgent »).</li>
+          <li><b>Une sauvegarde</b> Proello (.json), faite avec « Exporter une sauvegarde ».</li>
+        </ol>
+        <div class="import-pick">
+          <label class="btn primary small">Choisir un fichier<input type="file" id="importFile" accept=".csv,.tsv,.txt,.json,text/csv,text/plain,application/json" hidden /></label>
+          <span class="muted small" id="importFileName">ou colle ta liste ou tes cellules ci-dessous</span>
+        </div>
+        <label class="field">
+          <span class="sr-only">Texte à importer</span>
+          <textarea id="importText" rows="5" placeholder="Titre;Urgent;Important;Échéance&#10;Appeler le comptable;oui;oui;28/11/2026&#10;— ou —&#10;Appeler Paul demain urgent&#10;Ranger le garage samedi"></textarea>
+        </label>
+        <div id="importPreview" class="import-preview" aria-live="polite"></div>
+        <footer>
+          <button value="cancel" class="btn ghost">Annuler</button>
+          <button type="button" id="importGo" class="btn primary" disabled>Ajouter</button>
         </footer>
       </form>
     </dialog>

@@ -24,8 +24,10 @@ L'utilisateur écrit en français : répondre en français, et garder l'interfac
 - `js/profiles.js` : les 8 profils prédéfinis et leurs catégories ; profils modifiés ou créés par l'utilisateur.
 - `js/categorize.js` : catégorie devinée d'après les mots de la tâche (mots-clés par catégorie + nom de la catégorie).
 - `js/profile-ui.js` : écran d'accueil, fenêtre « Profil et catégories », filtre et pastilles de catégorie.
+- `js/importer.js` : import en nombre (tableau CSV / cellules collées, liste de texte via `parseDictation`, sauvegarde JSON),
+  doublons, modèle CSV ; fenêtre « Importer des tâches » dans `app.js`.
 - `js/report.js` : formulaire « Signaler une erreur » → fiche GitHub pré-remplie dans le dépôt privé.
-- `tests/` : `parser`, `periods`, `themes`, `categories`, `store`, `conflicts` (phrases pièges entre règles)
+- `tests/` : `parser`, `periods`, `themes`, `categories`, `store`, `import`, `conflicts` (phrases pièges entre règles)
   et `reports.test.mjs` (alimenté par `tests/reports.json`). Toute nouvelle règle doit garder `conflicts.test.mjs` au vert.
 
 ## Traiter les rapports d'erreur

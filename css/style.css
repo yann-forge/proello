@@ -687,3 +687,20 @@ button.g-day:hover b { color: var(--orange-ink); }
   .day-card span { font-size: 0.74rem; }
   .gantt-toolbar .seg button { padding: 7px 10px; }
 }
+
+/* ---------- Import de tâches ---------- */
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.import-steps { margin: 4px 0 12px; padding-left: 20px; display: grid; gap: 8px; font-size: 0.88rem; line-height: 1.4; }
+.import-steps .btn { margin-top: 6px; display: inline-flex; }
+.import-pick { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+.import-pick label.btn { cursor: pointer; }
+#importText { width: 100%; min-height: 110px; font-size: 0.85rem; font-family: ui-monospace, Consolas, monospace; }
+.import-preview { font-size: 0.85rem; }
+.import-preview > p { margin: 10px 0 6px; }
+.import-preview ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 240px; overflow-y: auto; }
+.import-preview li { display: flex; flex-direction: column; padding: 5px 9px; border-radius: 8px; background: var(--surface-2); border-left: 4px solid var(--q-strong, var(--sand-strong)); }
+.import-preview li small { color: var(--muted); font-weight: 700; }
+.import-warn { color: #b23c17; }
+.import-preview ul.import-warn { margin-top: 8px; }
+.import-preview ul.import-warn li { background: #fde4dc; border-left-color: #e98a6b; }

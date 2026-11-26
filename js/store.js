@@ -48,8 +48,8 @@ function make(input) {
     title: String(input.title || '').trim(),
     urgent: !!input.urgent,
     important: !!input.important,
-    done: false,
-    doneAt: null,
+    done: !!input.done, // une tâche importée peut arriver déjà terminée
+    doneAt: input.done ? input.doneAt || now : null,
     start: input.start || null,
     end: input.end || null,
     time: input.time || null, // horaire « HH:MM », sur le dernier jour de la tâche

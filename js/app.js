@@ -13,6 +13,7 @@ import { renderGantt } from './views/gantt.js';
 import { renderMatrix } from './views/matrix.js';
 
 import { VERSION } from './version.js';
+import { readImport, withoutDuplicates, templateCSV, decodeBytes } from './importer.js';
 import { profiles } from './profiles.js';
 import { initProfileUI, showWelcomeIfNeeded, openProfileDialog, renderCatFilter, filterTasks, withCategories, categoryOptions } from './profile-ui.js';
 
@@ -506,28 +507,104 @@ $('#exportBtn').addEventListener('click', () => {
   const blob = new Blob([JSON.stringify({ app: 'proello', version: 1, exportedAt: new Date().toISOString(), tasks: store.all() }, null, 2)], {
     type: 'application/json',
   });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `proello-${todayISO()}.json`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  download(blob, `proello-${todayISO()}.json`);
 });
 
-$('#importInput').addEventListener('change', async (e) => {
+function download(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ---------- Import de tâches en nombre (tableau CSV, liste, sauvegarde) ---------- */
+
+let pending = []; // tâches prêtes à être ajoutées
+let importName = '';
+
+$('#importBtn').addEventListener('click', () => {
+  $('#menu').close();
+  $('#importText').value = '';
+  $('#importFileName').textContent = 'ou colle ta liste ou tes cellules ci-dessous';
+  importName = '';
+  previewImport();
+  $('#importDlg').showModal();
+});
+
+$('#importTemplate').addEventListener('click', () => {
+  download(new Blob([templateCSV(profiles.categories())], { type: 'text/csv;charset=utf-8' }), 'proello-modele.csv');
+});
+
+$('#importFile').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   e.target.value = '';
   if (!file) return;
+  importName = file.name;
+  $('#importFileName').textContent = file.name;
+  $('#importText').value = decodeBytes(await file.arrayBuffer());
+  previewImport();
+});
+
+let previewTimer = 0;
+$('#importText').addEventListener('input', () => {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(previewImport, 250);
+});
+
+const KIND_LABEL = { table: 'Tableau', text: 'Liste (comprise comme une dictée)', backup: 'Sauvegarde Proello' };
+
+function previewImport() {
+  const box = $('#importPreview');
+  const go = $('#importGo');
+  pending = [];
+  let result;
   try {
-    const data = JSON.parse(await file.text());
-    const list = Array.isArray(data) ? data : data.tasks;
-    if (!Array.isArray(list)) throw new Error();
-    const before = store.all();
-    store.replaceAll(list.filter((t) => t && t.title));
-    $('#menu').close();
-    toast(`${plural(list.length, 'tâche')} importée${list.length > 1 ? 's' : ''}`, { label: 'Annuler', run: () => store.replaceAll(before) });
+    result = readImport($('#importText').value, { name: importName, categories: profiles.categories(), now: new Date() });
   } catch {
-    toast("Ce fichier n'est pas une sauvegarde Proello valide.");
+    box.innerHTML = '<p class="import-warn">Ce fichier JSON n’est pas une sauvegarde Proello lisible.</p>';
+    go.disabled = true;
+    go.textContent = 'Ajouter';
+    return;
   }
+  const { fresh, duplicates } = withoutDuplicates(result.tasks, store.all());
+  pending = result.kind === 'backup' ? fresh : withCategories(fresh);
+  go.disabled = !pending.length;
+  go.textContent = pending.length ? `Ajouter ${plural(pending.length, 'tâche')}` : 'Ajouter';
+  if (!result.tasks.length && !result.skipped.length) return (box.innerHTML = '');
+  const cats = Object.fromEntries(profiles.categories().map((c) => [c.id, c.name]));
+  const row = (t) => {
+    const bits = [
+      t.start ? (t.start !== t.end ? `${relLabel(t.start)} → ${relLabel(t.end)}` : relLabel(t.end)) : '',
+      t.time ? fmtTime(t.time, t.endTime) : '',
+      cats[t.category] || '',
+      t.urgent ? 'Urgent' : '',
+      t.important ? 'Important' : '',
+      t.done ? 'Terminée' : '',
+    ].filter(Boolean);
+    return `<li class="q-${quadrantOf(t)}"><b>${esc(t.title)}</b>${bits.length ? `<small>${esc(bits.join(' · '))}</small>` : ''}</li>`;
+  };
+  const MAX = 30;
+  box.innerHTML = `
+    <p><b>${KIND_LABEL[result.kind]}</b> : ${plural(pending.length, 'tâche')} à ajouter${
+      duplicates ? `, ${plural(duplicates, 'doublon')} ignoré${duplicates > 1 ? 's' : ''}` : ''
+    }.</p>
+    ${pending.length ? `<ul>${pending.slice(0, MAX).map(row).join('')}${pending.length > MAX ? `<li class="muted">… et ${pending.length - MAX} autres</li>` : ''}</ul>` : ''}
+    ${
+      result.skipped.length
+        ? `<ul class="import-warn">${result.skipped
+            .map((s) => `<li>Ligne ${s.line} : ${esc(s.reason)}${s.kept ? ' (tâche gardée sans cette info)' : ' (ignorée)'}</li>`)
+            .join('')}</ul>`
+        : ''
+    }`;
+}
+
+$('#importGo').addEventListener('click', () => {
+  if (!pending.length) return;
+  const before = store.all();
+  const added = store.add(pending);
+  $('#importDlg').close();
+  toast(`${plural(added.length, 'tâche')} importée${added.length > 1 ? 's' : ''}`, { label: 'Annuler', run: () => store.replaceAll(before) });
 });
 
 /* ---------- Installation (PWA) ---------- */

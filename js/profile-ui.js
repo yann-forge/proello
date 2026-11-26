@@ -37,7 +37,7 @@ export function categoryOptions(selected) {
 /** Ajoute la catégorie devinée à chaque tâche issue de la dictée. */
 export function withCategories(items) {
   const cats = profiles.categories();
-  return items.map((t) => ({ ...t, category: t.category ?? categorize(`${t.title} ${t.notes || ''} ${t.source || ''}`, cats) }));
+  return items.map((t) => ({ ...t, category: t.category ?? categorize(`${t.categoryHint || ''} ${t.title} ${t.notes || ''} ${t.source || ''}`, cats) }));
 }
 
 /* ---------- filtre par catégorie (toutes les vues) ---------- */

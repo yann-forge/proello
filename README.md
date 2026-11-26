@@ -18,7 +18,12 @@ Une to-do list qu'on remplit **à la voix** et qu'on organise selon l'**urgence*
   2. **Planning** : un Gantt, titres des tâches à gauche, barres à déplacer et étirer au doigt ou à la souris. Toucher un jour en haut du planning ouvre la vue journée : tâches heure par heure, et celles sans horaire à côté. Les heures dictées (« à 14h », « de 9h à 11h », « pendant 1h30 ») sont reconnues.
   3. **Matrice d'Eisenhower** : les 4 cadrans, avec glisser-déposer entre eux.
 - 📱 **Installable** sur téléphone et ordinateur (PWA), fonctionne hors ligne.
-- 💾 Les tâches sont enregistrées sur l'appareil ; export / import JSON depuis le menu.
+- 💾 Les tâches sont enregistrées sur l'appareil ; « Exporter une sauvegarde » crée un fichier `.json` à garder ou à transférer.
+- ⬇︎ **Importer des tâches en nombre** (menu ⋯) :
+  - un **tableau** Excel / Google Sheets enregistré en CSV (modèle téléchargeable dans l'app : Titre, Urgent, Important, Début, Échéance, Heure, Catégorie, Détail, Terminée), ou des cellules copiées-collées ;
+  - une **liste** de texte, une tâche par ligne, comprise comme une dictée ;
+  - une **sauvegarde** Proello (`.json`).
+  Les tâches s'ajoutent aux existantes (doublons ignorés), avec un aperçu avant d'ajouter.
 
 ## Installer l'app
 
@@ -47,6 +52,7 @@ js/app.js             navigation, dictée, dialogues, installation
 js/parser.js          découpe une dictée en tâches (urgence, importance, dates)
 js/voice.js           reconnaissance vocale du navigateur
 js/store.js           stockage local des tâches
+js/importer.js        import en nombre (CSV, liste, sauvegarde JSON)
 js/views/             les 3 vues : list, gantt, matrix
 sw.js                 service worker (hors ligne)
 ```
