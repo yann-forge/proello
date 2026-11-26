@@ -2,7 +2,8 @@
 // - une ligne par tâche, son titre dans la colonne de gauche (petit, sur plusieurs lignes si besoin) ;
 // - rien n'est écrit dans les barres, qui se déplacent / s'étirent au doigt ou à la souris ;
 // - toutes les tâches datées sont affichées : la frise va de la plus ancienne à la plus lointaine
-//   et se parcourt en faisant défiler (en largeur et en hauteur). Semaine / 2 semaines / Mois = zoom.
+//   et se parcourt en faisant défiler (en largeur et en hauteur). Largeur des jours fixe (lisible au doigt) ;
+//   les tâches terminées n'y figurent pas (elles restent dans la liste).
 
 import { quadrantOf, sortTasks, sortPlanning } from '../tasks.js';
 import { todayISO, addDays, diffDays, fromISO, fmtShort, fmtTime } from '../dates.js';
@@ -10,15 +11,10 @@ import { renderDay, legendHtml } from './day.js';
 import { esc, lsGet, lsSet } from '../util.js';
 import { occurrences, describeRepeat } from '../repeat.js';
 
-const SPANS = [
-  { days: 7, label: 'Semaine', step: 7 },
-  { days: 14, label: '2 semaines', step: 7 },
-  { days: 31, label: 'Mois', step: 28 },
-];
 const WD = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 const fmtMonth = new Intl.DateTimeFormat('fr-FR', { month: 'short' });
-// start : premier jour de la frise ; view : jour affiché au bord gauche ; span : nombre de jours visibles (zoom)
-const state = { start: null, view: null, span: lsGet('proello.gantt.span', 14), day: null }; // day : vue journée ouverte
+// start : premier jour de la frise ; view : jour affiché au bord gauche 
+const state = { start: null, view: null, day: null }; // day : vue journée ouverte
 const MAX_DAYS = 1100; // garde-fou : environ trois ans de frise
 const HOLD_MS = 1000; // appui long (au doigt) avant de pouvoir déplacer une barre
 const drag = { armed: false };
@@ -60,13 +56,11 @@ export function renderGantt(root, tasks, ctx) {
   if (state.day) {
     return renderDay(root, tasks, ctx, {
       day: state.day,
-      spans: SPANS,
+      spans: [{ days: 14, label: '← Planning' }],
       setDay: (d) => ((state.day = d), ctx.rerender()),
       leave: (span) => {
         state.view = addDays(state.day, -1);
-        state.span = span;
         state.day = null;
-        lsSet('proello.gantt.span', span);
         ctx.rerender();
       },
     });
@@ -77,17 +71,17 @@ export function renderGantt(root, tasks, ctx) {
   const oldTop = old ? old.scrollTop : 0;
   if (!old) document.body.classList.remove('g-focus'); // on arrive sur le planning : tout est visible
   const compact = lsGet('proello.gantt.compact', false);
-  const closed = lsGet('proello.gantt.closed', { done: true }); // groupes repliés (les terminées par défaut)
+  const closed = lsGet('proello.gantt.closed', {}); // groupes repliés
   if (!state.view) state.view = addDays(today, -1);
-  const zoom = state.span;
-  const spanDef = SPANS.find((x) => x.days === zoom) || SPANS[1];
+  const zoom = 14; // jours visibles sur grand écran ; sur téléphone, la largeur minimale d'un jour l'emporte
+  const step = 7; // ‹ › : une semaine
   const avail = Math.max(0, root.clientWidth - 2);
   // colonne des titres : étroite sur téléphone
   const nameW = avail < 520 ? 104 : avail < 900 ? 150 : 190;
   const dayW = Math.max(zoom > 14 ? 26 : 34, Math.floor((avail - nameW) / zoom));
 
   tasks = tasks.filter((t) => !t.perEvent); // modèles « pour chaque prestation » : pas de date propre
-  const scheduled = tasks.filter((t) => t.start);
+  const scheduled = tasks.filter((t) => t.start && !t.done); // les terminées restent dans la liste, pas ici
   // la frise couvre toutes les tâches datées (et au moins l'écran autour d'aujourd'hui), avec un peu de marge
   let from = addDays(today, -1);
   let to = addDays(today, zoom - 2);
@@ -156,7 +150,6 @@ export function renderGantt(root, tasks, ctx) {
     ['today', 'Aujourd’hui, en cours ou en retard', (t) => !t.done && t.start <= today],
     ['week', 'Les 7 prochains jours', (t) => !t.done && t.start > today && t.start <= weekEnd],
     ['later', 'Plus tard', (t) => !t.done && t.start > weekEnd],
-    ['done', 'Terminées', (t) => t.done],
   ];
   const rowsHtml = GROUPS.map(([k, label, inGroup]) => {
     const g = rows.filter(inGroup);
@@ -170,7 +163,6 @@ export function renderGantt(root, tasks, ctx) {
 
   root.innerHTML = `
     <div class="gantt-toolbar">
-      <div class="seg">${SPANS.map((s) => `<button data-span="${s.days}" class="${s.days === zoom ? 'on' : ''}">${s.label}</button>`).join('')}</div>
       <button class="btn ghost small compact-btn ${compact ? 'on' : ''}" data-compact aria-pressed="${compact}" title="Lignes plus serrées pour voir plus de tâches">☰ Compact</button>
       <div class="g-nav">
         <button class="icon-btn" data-nav="prev" aria-label="Plus tôt">‹</button>
@@ -261,16 +253,10 @@ export function renderGantt(root, tasks, ctx) {
       lsSet('proello.gantt.compact', !compact);
       return ctx.rerender();
     }
-    const spanBtn = e.target.closest('[data-span]');
-    if (spanBtn) {
-      state.span = Number(spanBtn.dataset.span);
-      lsSet('proello.gantt.span', state.span);
-      return ctx.rerender();
-    }
     const nav = e.target.closest('[data-nav]');
     if (nav) {
       const n = nav.dataset.nav;
-      return scrollToDay(n === 'today' ? addDays(todayISO(), -1) : addDays(state.view, (n === 'next' ? 1 : -1) * spanDef.step));
+      return scrollToDay(n === 'today' ? addDays(todayISO(), -1) : addDays(state.view, (n === 'next' ? 1 : -1) * step));
     }
     const edit = e.target.closest('[data-edit]');
     if (edit) return ctx.openEditor(edit.dataset.edit);
