@@ -16,6 +16,8 @@ const SPANS = [
 const WD = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 const fmtMonth = new Intl.DateTimeFormat('fr-FR', { month: 'short' });
 const state = { start: null, span: lsGet('proello.gantt.span', 14), day: null }; // day : vue journée ouverte
+const HOLD_MS = 1000; // appui long (au doigt) avant de pouvoir déplacer une barre
+const drag = { armed: false };
 
 /** Position horizontale d'une barre (en px, dans la zone des jours). */
 function barBox(s, e, span, dayW) {
@@ -192,23 +194,68 @@ export function renderGantt(root, tasks, ctx) {
     if (plan) ctx.update(plan.dataset.plan, { start: todayISO(), end: todayISO() });
   };
 
+  // Déplacer / étirer une barre :
+  // - au doigt : appui long (HOLD_MS) ; la barre s'entoure progressivement, puis se met en surbrillance :
+  //   elle est sélectionnée et suit alors le doigt. Un simple glissement fait défiler le planning sans rien changer ;
+  // - à la souris : on peut la faire glisser tout de suite.
+  // Un appui bref (sans bouger) ouvre la fiche de la tâche.
+  root.oncontextmenu = (e) => e.target.closest('.g-bar') && e.preventDefault(); // pas de menu sur appui long
+  if (!root.dataset.holdReady) {
+    root.dataset.holdReady = '1';
+    // une fois la barre sélectionnée, le doigt la déplace au lieu de faire défiler la page
+    root.addEventListener('touchmove', (e) => drag.armed && e.preventDefault(), { passive: false });
+  }
+
   root.onpointerdown = (ev) => {
     const bar = ev.target.closest('.g-bar:not(.g-occ)');
     if (!bar || ev.button > 0) return;
-    ev.preventDefault();
+    const touch = ev.pointerType !== 'mouse';
+    if (!touch) ev.preventDefault();
     const id = bar.dataset.id;
     const t = tasks.find((x) => x.id === id);
     const mode = ev.target.closest('.g-handle.l') ? 'start' : ev.target.closest('.g-handle.r') ? 'end' : 'move';
     const s0 = diffDays(state.start, t.start);
     const e0 = diffDays(state.start, t.end);
     const x0 = ev.clientX;
+    const y0 = ev.clientY;
     let moved = false;
     let s = s0;
     let en = e0;
-    bar.setPointerCapture(ev.pointerId);
+    drag.armed = !touch;
+    let timer = 0;
+
+    const arm = () => {
+      drag.armed = true;
+      bar.classList.remove('holding');
+      bar.classList.add('armed');
+      try {
+        bar.setPointerCapture(ev.pointerId);
+      } catch {}
+      navigator.vibrate?.(25);
+    };
+    if (touch) {
+      bar.classList.add('holding');
+      bar.style.setProperty('--hold', `${HOLD_MS}ms`);
+      timer = setTimeout(arm, HOLD_MS);
+    } else bar.setPointerCapture(ev.pointerId);
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      drag.armed = false;
+      bar.classList.remove('holding', 'armed');
+      bar.removeEventListener('pointermove', onMove);
+      bar.removeEventListener('pointerup', finish);
+      bar.removeEventListener('pointercancel', finish);
+      bar.removeEventListener('lostpointercapture', finish);
+    };
 
     const onMove = (e) => {
       const dx = e.clientX - x0;
+      if (!drag.armed) {
+        // le doigt bouge avant la fin de l'appui long : c'est un défilement, on n'y touche pas
+        if (Math.abs(dx) > 8 || Math.abs(e.clientY - y0) > 8) (moved = true), cleanup();
+        return;
+      }
       if (Math.abs(dx) > 5) moved = true;
       if (!moved) return;
       const delta = Math.round(dx / dayW);
@@ -219,15 +266,16 @@ export function renderGantt(root, tasks, ctx) {
         en += delta;
       } else if (mode === 'start') s = Math.min(s0 + delta, e0);
       else en = Math.max(e0 + delta, s0);
-      bar.style.cssText = barStyle(barBox(s, en, span, dayW));
+      bar.style.left = barBox(s, en, span, dayW).left + 'px';
+      bar.style.width = barBox(s, en, span, dayW).width + 'px';
       bar.classList.add('dragging');
     };
     const finish = (e) => {
-      bar.removeEventListener('pointermove', onMove);
-      bar.removeEventListener('pointerup', finish);
-      bar.removeEventListener('pointercancel', finish);
-      if (e.type === 'pointercancel') return ctx.rerender();
-      if (!moved) return ctx.openEditor(id);
+      const wasArmed = drag.armed;
+      cleanup();
+      if (e.type === 'pointercancel' || e.type === 'lostpointercapture') return wasArmed && moved ? ctx.rerender() : null;
+      if (!moved) return wasArmed && touch ? null : ctx.openEditor(id);
+      if (!wasArmed) return;
       if (s === s0 && en === e0) return ctx.rerender();
       ctx.update(id, { start: addDays(state.start, s), end: addDays(state.start, en) });
     };

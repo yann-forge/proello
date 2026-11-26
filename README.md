@@ -14,10 +14,10 @@ Une to-do list qu'on remplit **à la voix** et qu'on organise selon l'**urgence*
 - 🏷️ **Profils et catégories** : au premier lancement, on choisit son profil (artiste, entrepreneur, salarié, association, étudiant, parent, sportif, vie personnelle). Chaque tâche reçoit une catégorie devinée d'après la dictée, modifiable. Catégories et profils sont personnalisables.
 - ↻ **Tâches répétées** : « tous les lundis », « chaque mardi et vendredi », « tous les jours », « chaque mois », « … jusqu'au 30 juin » (à la dictée, à l'import ou dans la fiche). Une seule tâche, affichée à chaque occurrence dans le planning ; cochée, elle passe à la suivante.
 - ★ **Prestations et modèles « pour chaque prestation »** : une tâche modèle (« brief avec les mariés, J-30 → J-15 ») est copiée et datée automatiquement pour chaque tâche marquée « Prestation », et suit si la date de la prestation change.
-- 🗑 **Corbeille** : une tâche supprimée reste récupérable 30 jours (menu ⋯ → Corbeille).
+- 🗑 **Corbeille** : une tâche supprimée reste récupérable 30 jours (menu ⋯ → Corbeille). « Retirer des tâches ajoutées récemment » annule un import ou une dictée de trop.
 - ✅ **Trois vues** :
   1. **Liste** : toutes les tâches triées par priorité, avec filtres.
-  2. **Planning** : un Gantt, titres des tâches à gauche, barres à déplacer et étirer au doigt ou à la souris. Toucher un jour en haut du planning ouvre la vue journée : tâches heure par heure, et celles sans horaire à côté. Les heures dictées (« à 14h », « de 9h à 11h », « pendant 1h30 ») sont reconnues.
+  2. **Planning** : un Gantt, titres des tâches à gauche, barres à déplacer et étirer à la souris, ou au doigt après un appui long (la barre s'encadre quand elle est sélectionnée). Toucher un jour en haut du planning ouvre la vue journée : tâches heure par heure, et celles sans horaire à côté. Les heures dictées (« à 14h », « de 9h à 11h », « pendant 1h30 ») sont reconnues.
   3. **Matrice d'Eisenhower** : les 4 cadrans, avec glisser-déposer entre eux.
 - 📱 **Installable** sur téléphone et ordinateur (PWA), fonctionne hors ligne.
 - 💾 Les tâches sont enregistrées sur l'appareil ; « Exporter une sauvegarde » crée un fichier `.json` à garder ou à transférer.

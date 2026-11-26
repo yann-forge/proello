@@ -111,6 +111,13 @@ export const store = {
     return removed;
   },
 
+  /** Met plusieurs tâches à la corbeille (récupérables 30 jours). */
+  removeMany(ids) {
+    const set = new Set(ids);
+    const now = Date.now();
+    commit(tasks.map((t) => (set.has(t.id) && !t.deletedAt ? touch(t, { deletedAt: now }) : t)));
+  },
+
   /* ---------- corbeille ---------- */
 
   trash: () => tasks.filter((t) => t.deletedAt).sort((a, b) => b.deletedAt - a.deletedAt),

@@ -611,6 +611,79 @@ function download(blob, name) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+/* ---------- Retirer des tâches ajoutées récemment ---------- */
+
+// Les tâches créées dans les mêmes secondes forment un « ajout » (un import, une dictée, des tâches de prestation).
+const fmtWhen = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+let recentBatches = [];
+
+function batchesOf(list) {
+  const since = Date.now() - 14 * 86400000;
+  const recent = list.filter((t) => t.createdAt >= since).sort((a, b) => b.createdAt - a.createdAt);
+  const out = [];
+  for (const t of recent) {
+    const last = out[out.length - 1];
+    if (last && last.from - t.createdAt < 5000) {
+      last.tasks.push(t);
+      last.from = t.createdAt;
+    } else out.push({ from: t.createdAt, at: t.createdAt, tasks: [t] });
+  }
+  return out.slice(0, 25);
+}
+
+function renderRecent() {
+  recentBatches = batchesOf(store.all());
+  const list = $('#recentList');
+  if (!recentBatches.length) {
+    list.innerHTML = '<li class="muted">Aucune tâche ajoutée ces 14 derniers jours.</li>';
+    return refreshRecentCount();
+  }
+  list.innerHTML = recentBatches
+    .map((b, i) => {
+      const titles = b.tasks.slice(0, 3).map((t) => esc(t.title)).join(' · ') + (b.tasks.length > 3 ? ' …' : '');
+      const ago = Math.round((Date.now() - b.at) / 60000);
+      const when = ago < 60 ? `il y a ${ago < 1 ? 'moins d’1' : ago} min` : fmtWhen.format(new Date(b.at));
+      return `<li><label>
+        <input type="checkbox" data-batch="${i}" />
+        <span><span><b>${plural(b.tasks.length, 'tâche')}</b> · ${when}</span><small>${titles}</small></span>
+      </label></li>`;
+    })
+    .join('');
+  refreshRecentCount();
+}
+
+function refreshRecentCount() {
+  const ids = selectedRecentIds();
+  const go = $('#recentGo');
+  go.disabled = !ids.length;
+  go.textContent = ids.length ? `Mettre ${plural(ids.length, 'tâche')} à la corbeille` : 'Mettre à la corbeille';
+}
+
+const selectedRecentIds = () =>
+  [...$('#recentList').querySelectorAll('[data-batch]:checked')].flatMap((c) => recentBatches[c.dataset.batch].tasks.map((t) => t.id));
+
+$('#recentBtn').addEventListener('click', () => {
+  $('#menu').close();
+  renderRecent();
+  $('#recentDlg').showModal();
+});
+
+$('#recentList').addEventListener('change', (e) => {
+  const box = e.target.closest('[data-batch]');
+  if (!box) return;
+  // cocher un ajout coche aussi tous les ajouts plus récents (« l'import et tout ce qui a suivi »)
+  if (box.checked) $('#recentList').querySelectorAll('[data-batch]').forEach((c) => Number(c.dataset.batch) < Number(box.dataset.batch) && (c.checked = true));
+  refreshRecentCount();
+});
+
+$('#recentGo').addEventListener('click', () => {
+  const ids = selectedRecentIds();
+  if (!ids.length) return;
+  store.removeMany(ids);
+  $('#recentDlg').close();
+  toast(`${plural(ids.length, 'tâche')} mise${ids.length > 1 ? 's' : ''} à la corbeille`, { label: 'Annuler', run: () => store.untrash(ids) });
+});
+
 /* ---------- Import de tâches en nombre (tableau CSV, liste, sauvegarde) ---------- */
 
 let pending = []; // tâches prêtes à être ajoutées

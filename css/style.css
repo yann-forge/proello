@@ -242,7 +242,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 20px 120px; }
   position: absolute; top: 50%; height: 20px; margin-top: -10px; border-radius: 8px;
   background: var(--q); color: var(--q-ink); border: 1.5px solid var(--q-strong);
   display: flex; align-items: center; padding: 0 10px; font-size: 0.82rem; font-weight: 800;
-  cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+  cursor: grab; touch-action: pan-x pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
   transition: box-shadow 0.15s; z-index: 2;
 }
 .g-label { display: flex; align-items: center; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; pointer-events: none; }
@@ -719,3 +719,20 @@ button.g-day:hover b { color: var(--orange-ink); }
 .tpl-section summary { cursor: pointer; font-weight: 800; color: var(--muted); }
 .tpl-section summary small { margin-left: 4px; }
 .tpl-section .task-list { margin-top: 8px; }
+
+/* Planning au doigt : appui long sur une barre → cadre qui se remplit, puis surbrillance = sélectionnée, déplaçable */
+.g-bar.holding { box-shadow: 0 0 0 0 var(--ink); animation: g-hold var(--hold, 1s) linear forwards; }
+@keyframes g-hold { to { box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 55%, transparent); } }
+.g-bar.armed {
+  z-index: 6; outline: 3px solid var(--ink); outline-offset: 2px;
+  box-shadow: 0 6px 18px rgba(59, 53, 44, 0.3); transform: scaleY(1.15);
+}
+.g-bar.armed .g-handle::after { opacity: 1; }
+
+/* ---------- Ajouts récents ---------- */
+.recent-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; max-height: 55vh; overflow-y: auto; }
+.recent-list label { display: flex; gap: 10px; align-items: flex-start; padding: 9px 11px; border-radius: 10px; background: var(--surface-2); cursor: pointer; }
+.recent-list input { margin-top: 3px; width: 18px; height: 18px; flex: none; }
+.recent-list span { display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; min-width: 0; }
+.recent-list small { color: var(--muted); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent-list li:has(input:checked) label { background: #fde4dc; }
