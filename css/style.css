@@ -702,5 +702,8 @@ button.g-day:hover b { color: var(--orange-ink); }
 .import-preview li { display: flex; flex-direction: column; padding: 5px 9px; border-radius: 8px; background: var(--surface-2); border-left: 4px solid var(--q-strong, var(--sand-strong)); }
 .import-preview li small { color: var(--muted); font-weight: 700; }
 .import-warn { color: #b23c17; }
+.import-note { margin: 10px 0 4px; color: var(--muted); }
+.import-preview ul.import-notes { max-height: 120px; font-size: 0.8rem; }
+.import-preview ul.import-notes li { background: var(--yellow-soft); border-left-color: var(--yellow-strong); color: var(--yellow-ink); }
 .import-preview ul.import-warn { margin-top: 8px; }
 .import-preview ul.import-warn li { background: #fde4dc; border-left-color: #e98a6b; }

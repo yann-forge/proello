@@ -573,6 +573,8 @@ function previewImport() {
   go.textContent = pending.length ? `Ajouter ${plural(pending.length, 'tâche')}` : 'Ajouter';
   if (!result.tasks.length && !result.skipped.length) return (box.innerHTML = '');
   const cats = Object.fromEntries(profiles.categories().map((c) => [c.id, c.name]));
+  const notRead = result.skipped.filter((s) => s.kept);
+  const dropped = result.skipped.filter((s) => !s.kept);
   const row = (t) => {
     const bits = [
       t.start ? (t.start !== t.end ? `${relLabel(t.start)} → ${relLabel(t.end)}` : relLabel(t.end)) : '',
@@ -584,17 +586,16 @@ function previewImport() {
     ].filter(Boolean);
     return `<li class="q-${quadrantOf(t)}"><b>${esc(t.title)}</b>${bits.length ? `<small>${esc(bits.join(' · '))}</small>` : ''}</li>`;
   };
-  const MAX = 30;
   box.innerHTML = `
     <p><b>${KIND_LABEL[result.kind]}</b> : ${plural(pending.length, 'tâche')} à ajouter${
       duplicates ? `, ${plural(duplicates, 'doublon')} ignoré${duplicates > 1 ? 's' : ''}` : ''
     }.</p>
-    ${pending.length ? `<ul>${pending.slice(0, MAX).map(row).join('')}${pending.length > MAX ? `<li class="muted">… et ${pending.length - MAX} autres</li>` : ''}</ul>` : ''}
+    ${pending.length ? `<ul>${pending.map(row).join('')}</ul>` : ''}
     ${
       result.skipped.length
-        ? `<ul class="import-warn">${result.skipped
-            .map((s) => `<li>Ligne ${s.line} : ${esc(s.reason)}${s.kept ? ' (tâche gardée sans cette info)' : ' (ignorée)'}</li>`)
-            .join('')}</ul>`
+        ? `${notRead.length ? `<p class="import-note">${plural(notRead.length, 'info')} sans date ou heure précise (répétition, « en continu »…) : gardée${notRead.length > 1 ? 's' : ''} telle${notRead.length > 1 ? 's' : ''} quelle${notRead.length > 1 ? 's' : ''} dans le détail de la tâche.</p>
+            <ul class="import-notes">${notRead.map((s) => `<li>Ligne ${s.line} : ${esc(s.reason)}</li>`).join('')}</ul>` : ''}
+          ${dropped.length ? `<ul class="import-warn">${dropped.map((s) => `<li>Ligne ${s.line} ignorée : ${esc(s.reason)}</li>`).join('')}</ul>` : ''}`
         : ''
     }`;
 }

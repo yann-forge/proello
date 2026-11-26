@@ -8,7 +8,6 @@
 
 import { parseDictation } from './parser.js';
 import { extractWhen } from './when.js';
-import { summarize, MAX_WORDS } from './summarize.js';
 import { toISO, todayISO, addDays } from './dates.js';
 import { uid } from './util.js';
 
@@ -152,12 +151,6 @@ function categoryId(v, categories) {
   return c ? c.id : null;
 }
 
-/** Titre court (4 mots) ; le titre complet passe dans le détail, comme pour une dictée. */
-function shortTitle(full, notes) {
-  if (full.split(/\s+/).length <= MAX_WORDS) return { title: full, notes };
-  return { title: summarize(full) || full, notes: [full, notes].filter(Boolean).join('\n') };
-}
-
 export function tasksFromTable(rows, { categories = [], now = new Date() } = {}) {
   const map = mapHeader(rows[0] || []);
   const tasks = [];
@@ -169,18 +162,22 @@ export function tasksFromTable(rows, { categories = [], now = new Date() } = {})
     if (!row.some(Boolean)) return; // ligne vide
     const full = get(row, 'title');
     if (!full) return skipped.push({ line, reason: 'pas de titre' });
-    const t = { ...shortTitle(full.replace(/\s+/g, ' '), get(row, 'notes')), source: '' };
+    // le titre du tableau est gardé tel quel (choisi par l'utilisateur, pas raccourci comme une dictée)
+    const t = { title: full.replace(/\s+/g, ' '), notes: get(row, 'notes'), source: '' };
     const prio = priorityOf(get(row, 'priority'));
     t.urgent = isYes(get(row, 'urgent')) || !!prio.urgent;
     t.important = isYes(get(row, 'important')) || !!prio.important;
     t.done = isYes(get(row, 'done'));
 
-    const problems = [];
+    // une date ou une heure non comprise (« Chaque semaine », « J-30 avant chaque date »…) n'est pas perdue :
+    // elle est recopiée dans le détail de la tâche
+    const unread = [];
+    const label = (f) => rows[0][map[f]] || f;
     const date = (f) => {
       const v = get(row, f);
       if (!v) return null;
       const d = parseDateCell(v, now);
-      if (!d) problems.push(`date « ${v} » non comprise`);
+      if (!d) unread.push([label(f), v]);
       return d;
     };
     const d = date('date');
@@ -192,7 +189,7 @@ export function tasksFromTable(rows, { categories = [], now = new Date() } = {})
 
     const tv = get(row, 'time');
     const time = tv ? parseTimeCell(tv) : null;
-    if (tv && !time) problems.push(`heure « ${tv} » non comprise`);
+    if (tv && !time) unread.push([label('time'), tv]);
     if (time) {
       t.time = time.time;
       t.endTime = time.endTime || parseTimeCell(get(row, 'endTime'))?.time || null;
@@ -200,7 +197,10 @@ export function tasksFromTable(rows, { categories = [], now = new Date() } = {})
     const cv = get(row, 'category');
     t.category = cv ? categoryId(cv, categories) : null;
     if (cv && !t.category) t.categoryHint = cv; // nom inconnu : aide à deviner la catégorie
-    if (problems.length) skipped.push({ line, reason: problems.join(', '), kept: true });
+    if (unread.length) {
+      t.notes = [t.notes, unread.map(([k, v]) => `${k} : ${v}`).join('\n')].filter(Boolean).join('\n');
+      skipped.push({ line, reason: unread.map(([k, v]) => `${k} « ${v} »`).join(', '), kept: true });
+    }
     tasks.push(t);
   });
   return { tasks, skipped };

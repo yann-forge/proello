@@ -35,13 +35,23 @@ test('cellules collées depuis Excel / Sheets (tabulations), noms de colonnes va
   ]);
 });
 
-test('période en début / échéance, titre long raccourci avec le texte complet en détail', () => {
-  const r = readImport('titre,debut,echeance\nPréparer le grand dossier de subvention régionale,1/12/2026,5/12/2026\n', { now });
+test('période en début / échéance ; le titre du tableau est gardé tel quel', () => {
+  const r = readImport('titre,debut,echeance\nTrouver un lieu de tournage « ambiance mariage »,1/12/2026,5/12/2026\n', { now });
   const [t] = r.tasks;
   assert.equal(t.start, '2026-12-01');
   assert.equal(t.end, '2026-12-05');
-  assert.ok(t.title.split(' ').length <= 4, t.title);
-  assert.match(t.notes, /grand dossier de subvention régionale/);
+  assert.equal(t.title, 'Trouver un lieu de tournage « ambiance mariage »');
+});
+
+test('date ou heure non datable (répétition, « en continu ») : recopiée dans le détail', () => {
+  const csv = 'Titre;Début;Échéance;Heure;Détails\n' +
+    'Candidature hebdomadaire;07/12/2026;Chaque semaine;Lundi matin;1 candidature par semaine\n' +
+    'Brief avec les mariés;J-30 avant chaque date;J-15 avant chaque date;;\n';
+  const [a, b] = readImport(csv, { now }).tasks;
+  assert.equal(a.start, '2026-12-07');
+  assert.equal(a.notes, '1 candidature par semaine\nÉchéance : Chaque semaine\nHeure : Lundi matin');
+  assert.equal(b.start, null);
+  assert.match(b.notes, /Début : J-30 avant chaque date\nÉchéance : J-15 avant chaque date/);
 });
 
 test('ligne sans titre ignorée, date incomprise signalée mais tâche gardée', () => {
