@@ -163,16 +163,15 @@
           <label class="field"><span>Genre de tâche</span>
             <select name="kind" id="editorKind"></select>
           </label>
-          <div class="row2" id="editorTypeRow">
+          <div id="editorTypeRow">
             <label class="field"><span id="editorTypeLabel">Type</span><select name="eventType" id="editorType"></select></label>
-            <label class="field" id="editorNewType" hidden><span>Nom du nouveau type</span><input name="newType" placeholder="Ex. : Mariage" /></label>
           </div>
           <div id="editorTpl" class="row2" hidden>
             <label class="field"><span>Du jour (J−30 = -30)</span><input type="number" name="tplFrom" min="-365" max="365" step="1" /></label>
             <label class="field"><span>Au jour (J+7 = 7)</span><input type="number" name="tplTo" min="-365" max="365" step="1" /></label>
           </div>
           <p id="editorKindHint" class="muted small"></p>
-          <button type="button" id="editorTypesBtn" class="link muted-link">Gérer les types et le mot utilisé</button>
+          <button type="button" id="editorTypesBtn" class="btn ghost small types-btn">★ Gérer les types et genres de tâches</button>
         </div>
 
         <button type="button" id="editorReport" class="link muted-link">⚑ Signaler une erreur de compréhension</button>

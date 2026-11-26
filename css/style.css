@@ -775,3 +775,7 @@ button.g-day:hover b { color: var(--orange-ink); }
 .more-panel select:focus { border-color: var(--orange-strong); box-shadow: 0 0 0 4px var(--orange-soft); }
 .more-panel .field { margin-top: 0; min-width: 0; }
 .more-panel .row2 { margin: 0; }
+
+/* bouton de gestion des types dans la fiche : bien visible */
+.more-panel .types-btn { justify-self: stretch; justify-content: center; border-radius: var(--radius-sm); padding-top: 10px; padding-bottom: 10px; line-height: 1.25; font-size: 0.86rem; color: #5b4396; border-color: #cbbcea; background: #f3eefc; font-weight: 800; }
+.more-panel .types-btn:hover { background: #e9e0fa; }

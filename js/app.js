@@ -368,7 +368,6 @@ function openEditor(id) {
   form.until.value = t.repeat?.until || '';
   renderKindOptions(t.perEvent ? 'template' : t.event ? 'event' : '');
   renderTypeOptions(t.perEvent ? t.perEvent.type : t.eventType);
-  form.newType.value = '';
   setMoreOpen(false);
   form.tplFrom.value = t.perEvent?.from ?? -7;
   form.tplTo.value = t.perEvent?.to ?? t.perEvent?.from ?? -1;
@@ -398,7 +397,6 @@ $('#editor').addEventListener('close', () => {
   };
   // type de prestation choisi (ou créé à la volée)
   let type = form.eventType.value || null;
-  if (type === '__new') type = eventTypes.add(form.newType.value);
   patch.eventType = patch.event ? type : null;
   // modèle « pour chaque prestation » : pas de date, un décalage en jours
   if (form.kind.value === 'template') {
@@ -446,8 +444,7 @@ function renderTypeOptions(selected) {
   const types = eventTypes.all();
   form.eventType.innerHTML =
     '<option value=""></option>' +
-    types.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join('') +
-    '<option value="__new">+ Nouveau type…</option>';
+    types.map((t) => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
   form.eventType.value = types.some((t) => t.id === selected) ? selected : '';
 }
 
@@ -461,11 +458,10 @@ function refreshEditorMode() {
   $('#editorTpl').hidden = !tpl;
   $('#editorTypeRow').hidden = !kind;
   $('#editorUntil').hidden = !form.repeat.value;
-  $('#editorNewType').hidden = form.eventType.value !== '__new';
   $('#editorTypeLabel').textContent = `Type ${deNoun(n)}`;
   // l'option vide change de sens selon le genre de tâche
   form.eventType.options[0].textContent = tpl ? 'Tous les types' : 'Sans type';
-  const typeName = form.eventType.value === '__new' ? form.newType.value.trim() : eventTypes.name(form.eventType.value);
+  const typeName = eventTypes.name(form.eventType.value);
   $('#editorKindHint').textContent =
     kind === 'event'
       ? `Les tâches « à faire pour chaque ${n} » ${typeName ? `du type ${typeName} et de tous les types` : 'de tous les types'} seront créées et datées autour de cette date.`
@@ -481,11 +477,7 @@ function refreshEditorMode() {
 }
 form.kind.addEventListener('change', refreshEditorMode);
 form.repeat.addEventListener('change', refreshEditorMode);
-form.eventType.addEventListener('change', () => {
-  refreshEditorMode();
-  if (form.eventType.value === '__new') form.newType.focus();
-});
-form.newType.addEventListener('input', refreshEditorMode);
+form.eventType.addEventListener('change', refreshEditorMode);
 $('#editorTypesBtn').addEventListener('click', () => openTypesDialog());
 
 /* ---------- Types de prestation et mot utilisé (prestation, événement, mission…) ---------- */
